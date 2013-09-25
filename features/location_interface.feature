@@ -1,9 +1,12 @@
-Feature: something something
-  In order to something something
-  A user something something
-  something something something
+Feature: Location
+    When someone wants to locate something, or calculate distance between two points,
+    or something similar related to coordinates, a good location interface is a must.
 
-  Scenario: something something
-    Given inspiration
-    When I create a sweet new gem
-    Then everyone should see how awesome I am
+    Scenario: convert address to coordinates
+        Given there is following address:
+            | address                 | city   | postal_code |
+            | Lintulammenkatu 13      | Kerava | 04250       |
+        When I geocode given addresses
+        Then resulting coordinates should be:
+            | latitude   | longitude       |
+            | 60.3961465 | 25.107054513076 |
