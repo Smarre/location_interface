@@ -1,10 +1,13 @@
 = location_interface
 
-This package is a frontend for {OSRM}[http://project-osrm.org/] and {Nominatim}[https://github.com/twain47/Nominatim].
+This package is a frontend for {OSRM}[http://project-osrm.org/] and {Nominatim}[https://github.com/twain47/Nominatim]
+and other location interfaces.
 
 There is support for fallbacks, where Google’s location APIs have been implemented. Other location
 interfaces should be pretty easy to integrate to this system, and they will be usable using the same common
 API then.
+
+By the way, I doubt name of this project is really good, feel free to poke me about better one :)
 
 == Contributing to location_interface
 
