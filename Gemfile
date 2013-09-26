@@ -9,6 +9,7 @@ group :development do
     gem "rdoc"
     gem "bundler"
     gem "jeweler"
+    gem "debugger2"
 end
 
 group :test do

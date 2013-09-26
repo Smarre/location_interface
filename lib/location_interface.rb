@@ -18,9 +18,7 @@ class LocationInterface < Sinatra::Base
 
     post "/geocode" do
         places = Nominatim.search(params["address_string"]).limit(1).address_details(true)
-        if places.count < 1
-            return json "No restaurants"
-        end
+        return json "No restaurants" if places.count < 1
 
         place = places.each.next
 
@@ -29,7 +27,16 @@ class LocationInterface < Sinatra::Base
     end
 
     post "/reverse" do
-        reverse = Nominatim::Reverse.new
+
+        return "nya"
+        return json params
+        result = Nominatim.reverse(params["latitude"], params["longitude"]).address_details(true).fetch
+
+        return json "Nothing found for given coordinates" if result.nil?
+
+        result.address.city
+        #"nya"
+        #result
     end
 
     private
@@ -41,7 +48,7 @@ class LocationInterface < Sinatra::Base
             config.email = contents["nominatim"]["email"]
             config.endpoint = contents["nominatim"]["service_url"]
             config.search_url = "search.php"
-            config.reverse_url = "search.php"
+            config.reverse_url = "reverse.php"
         end
     end
 
