@@ -18,4 +18,4 @@ Feature: Location
         When I reverse geocode given coordinates
         Then resulting address should be:
             | address                 | city   | postal_code |
-            | Lintulammenkatu 13      | Kerava | 04250       |
+            | Lintulammenkatu 13      | Kerava | 04200       |

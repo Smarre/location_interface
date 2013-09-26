@@ -27,16 +27,16 @@ class LocationInterface < Sinatra::Base
     end
 
     post "/reverse" do
-
-        return "nya"
-        return json params
-        result = Nominatim.reverse(params["latitude"], params["longitude"]).address_details(true).fetch
-
-        return json "Nothing found for given coordinates" if result.nil?
-
-        result.address.city
-        #"nya"
-        #result
+        place = Nominatim.reverse(params["latitude"], params["longitude"]).address_details(true).fetch
+        return json "Nothing found for given coordinates" if place.nil?
+        address = place.address
+        if not address.road
+            # TODO: send mail about this, there is most likely street instead of road, that case must be
+            # handled somehow.
+            raise "Road not set in response. Response: #{place.inspect}"
+        end
+        hash = { "address" => "#{address.road} #{address.house_number}", "city" => address.city, "postal_code" => address.postcode }
+        json hash
     end
 
     private
