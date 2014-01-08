@@ -3,3 +3,11 @@ nominatim:
     email: "your@email.org"
     # endpoint, the place where Nominatim is running, for example http://open.mapquestapi.com/nominatim/v1
     service_url: http://open.mapquestapi.com/nominatim/v1
+
+error_email:
+    email: "nyan@desu.fi"
+    server: "localhost"
+    port: 25
+    #username:
+    #password:
+    #method: :plain
