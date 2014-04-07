@@ -4,6 +4,7 @@ gem "sinatra"
 gem "sinatra-contrib"
 #gem "nominatim"
 gem "nominatim", :git => "git://github.com/Smarre/nominatim.git"
+gem "email"
 
 group :development do
     gem "rdoc"
