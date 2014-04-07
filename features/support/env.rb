@@ -17,15 +17,20 @@ require 'location_interface'
 server = ChildProcess.build("rackup", "--port", "9999")
 server.start
 
-Timeout.timeout(3) do
-    loop do
-        begin
-            HTTParty.get('http://localhost:9999')
-            break
-        rescue Errno::ECONNREFUSED => try_again
-            sleep 0.1
+begin
+    Timeout.timeout(3) do
+        loop do
+            begin
+                HTTParty.get('http://localhost:9999')
+                break
+            rescue Errno::ECONNREFUSED => try_again
+                sleep 0.1
+            end
         end
     end
+rescue Timeout::Error => e
+    puts "HTTParty.get('http://localhost:9999') failed"
+    exit 1
 end
 
 at_exit do
