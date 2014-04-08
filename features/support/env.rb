@@ -15,6 +15,7 @@ $LOAD_PATH.unshift(File.dirname(__FILE__) + '/../../lib')
 require 'location_interface'
 
 server = ChildProcess.build("rackup", "--port", "9999")
+#server.io.inherit! # enable for interface debugging
 server.start
 
 begin

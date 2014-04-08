@@ -19,3 +19,13 @@ Feature: Location
         Then resulting address should be:
             | address                 | city   | postal_code |
             | Lintulammenkatu 13      | Kerava | 04200       |
+
+    Scenario: there is an address we want a route for
+        Given there in following address to route from:
+            | address                 | city   | postal_code |
+            | Lintulammenkatu 13      | Kerava | 04250       |
+        And there in following address to route to:
+            | address                 | city         | postal_code |
+            | Linjatie 1              | Varpaisjärvi | 73200       |
+        When I calculate route between these two addresses
+        Then distance between these addresses should be 421.1 kilometers

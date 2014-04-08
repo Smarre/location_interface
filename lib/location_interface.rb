@@ -3,10 +3,12 @@ require "sinatra"
 require "sinatra/json"
 require "nominatim"
 require "psych"
-require "net/smtp"
+require "httparty"
+
+require "email"
 
 class LocationInterface < Sinatra::Base
-    
+
 
     helpers Sinatra::JSON
 
@@ -23,9 +25,14 @@ class LocationInterface < Sinatra::Base
         "Nya."
     end
 
+    # Arguments:
+    # - address
+    # - city
+    # - postal_code
     post "/geocode" do
-        places = Nominatim.search(params["address_string"]).limit(1).address_details(true)
-        return json "No restaurants" if places.count < 1
+        address_string = "#{params["address"]}, #{params["postal_code"]} #{params["city"]}"
+        places = Nominatim.search(address_string).limit(1).address_details(true)
+        raise "No restaurants" if places.count < 1
 
         place = places.each.next
 
@@ -33,21 +40,89 @@ class LocationInterface < Sinatra::Base
         json hash
     end
 
+    # Arguments:
+    # - latitude
+    # - longitude
     post "/reverse" do
-        foobar
         place = Nominatim.reverse(params["latitude"], params["longitude"]).address_details(true).fetch
-        return json "Nothing found for given coordinates" if place.nil?
+        raise "Nothing found for given coordinates" if place.nil?
         address = place.address
         if not address.road
-            # TODO: send mail about this, there is most likely street instead of road, that case must be
-            # handled somehow.
+            Email.send( {
+                from: "location_interface@slm.fi",
+                to: "tekninen@slm.fi",
+                subject: "Road in Nominatim result instead of street",
+                message: "For some reason Nominatim result had road instead of street in the response. Debug this: #{place.inspect}"
+            })
             raise "Road not set in response. Response: #{place.inspect}"
         end
         hash = { "address" => "#{address.road} #{address.house_number}", "city" => address.city, "postal_code" => address.postcode }
         json hash
     end
 
+    # distance from dot a to dot b over air
+    post "/distance" do
+        raise "Not implemented"
+    end
+
+
+    # Arguments:
+    # - from["address"]
+    # - from["postal_code"]
+    # - from["city"]
+    # - from["latitude"]
+    # - from["longitude"]
+    # - to["address"]
+    # - to["postal_code"]
+    # - to["city"]
+    # - to["latitude"]
+    # - to["longitude"]
+    #
+    # If both address and coordinates are given, coordinates are preferred over address.
+    #
+    # Internally, address will be converted to coordinates and then routed using coordinates.
+    post "/distance_by_roads" do
+        if params["from"].nil? or params["to"].nil?
+            raise "Invalid input."
+        end
+
+        from = {}
+        to = {}
+        puts params
+        unless params["from"]["latitude"].nil?
+            from["latitude"] = params["from"]["latitude"]
+            from["longitude"] = params["from"]["longitude"]
+        else
+            from["latitude"], from["longitude"] = address_to_coordinates params["from"]
+        end
+
+        unless params["to"]["latitude"].nil?
+            to["latitude"] = to["from"]["latitude"]
+            to["longitude"] = to["from"]["longitude"]
+        else
+            to["latitude"], to["longitude"] = address_to_coordinates params["to"]
+        end
+
+        config = Psych.load_file "config/config.yaml"
+        uri = "#{config["osrm"]["service_url"]}/viaroute?loc=#{from["latitude"]}," +
+                "#{from["longitude"]}&loc=#{to["latitude"]},#{to["longitude"]}"
+        response = HTTParty.get uri
+
+        body = JSON.parse response.body
+        json body["route_summary"]["total_distance"]
+    end
+
     private
+
+    def address_to_coordinates address
+        address_string = "#{address["address"]}, #{address["postal_code"]} #{address["city"]}"
+        places = Nominatim.search(address_string).limit(1).address_details(true)
+        raise "No coordinates found for given address" if places.count < 1
+
+        place = places.each.next
+
+        return place.lat, place.lon
+    end
 
     def parse_config
         contents = Psych.load_file "config/config.yaml"
