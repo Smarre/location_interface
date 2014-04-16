@@ -78,6 +78,9 @@ class LocationInterface < Sinatra::Base
     # - to["latitude"]
     # - to["longitude"]
     #
+    # For address, atleast postal code or city must be given, otherwise the result is not
+    # accurate.
+    #
     # If both address and coordinates are given, coordinates are preferred over address.
     #
     # Internally, address will be converted to coordinates and then routed using coordinates.
