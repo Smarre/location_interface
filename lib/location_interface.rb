@@ -29,6 +29,8 @@ class LocationInterface < Sinatra::Base
     # - address
     # - city
     # - postal_code
+    #
+    # Either address or postal code is required, not both.
     post "/geocode" do
         address_string = "#{params["address"]}, #{params["postal_code"]} #{params["city"]}"
         places = Nominatim.search(address_string).limit(1).address_details(true)
