@@ -5,8 +5,8 @@ require "nominatim"
 require "psych"
 require "httparty"
 
-require "email"
-require "address"
+require_relative "email"
+require_relative "address"
 
 class LocationInterface < Sinatra::Base
 
@@ -103,8 +103,8 @@ class LocationInterface < Sinatra::Base
         end
 
         unless params["to"]["latitude"].nil?
-            to["latitude"] = to["from"]["latitude"]
-            to["longitude"] = to["from"]["longitude"]
+            to["latitude"] = to["to"]["latitude"]
+            to["longitude"] = to["to"]["longitude"]
         else
             to["latitude"], to["longitude"] = address_to_coordinates params["to"]
         end
