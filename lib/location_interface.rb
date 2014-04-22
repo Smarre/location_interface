@@ -87,6 +87,8 @@ class LocationInterface < Sinatra::Base
     # If both address and coordinates are given, coordinates are preferred over address.
     #
     # Internally, address will be converted to coordinates and then routed using coordinates.
+    #
+    # Returns distance in kilometers
     post "/distance_by_roads" do
         if params["from"].nil? or params["to"].nil?
             raise "Invalid input."
@@ -114,7 +116,7 @@ class LocationInterface < Sinatra::Base
         response = HTTParty.get uri
 
         body = JSON.parse response.body
-        json body["route_summary"]["total_distance"]
+        json body["route_summary"]["total_distance"] / 1000.0
     end
 
     private
