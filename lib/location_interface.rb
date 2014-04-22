@@ -94,7 +94,6 @@ class LocationInterface < Sinatra::Base
 
         from = {}
         to = {}
-        puts params
         unless params["from"]["latitude"].nil?
             from["latitude"] = params["from"]["latitude"]
             from["longitude"] = params["from"]["longitude"]
@@ -103,8 +102,8 @@ class LocationInterface < Sinatra::Base
         end
 
         unless params["to"]["latitude"].nil?
-            to["latitude"] = to["to"]["latitude"]
-            to["longitude"] = to["to"]["longitude"]
+            to["latitude"] = params["to"]["latitude"]
+            to["longitude"] = params["to"]["longitude"]
         else
             to["latitude"], to["longitude"] = address_to_coordinates params["to"]
         end
