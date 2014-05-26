@@ -40,7 +40,7 @@ class LocationInterface < Sinatra::Base
     post "/geocode" do
         address_string = "#{params["address"]}, #{params["postal_code"]} #{params["city"]}"
         places = Nominatim.search(address_string).limit(1).address_details(true)
-        raise "No restaurants" if places.count < 1
+        return [ 404, { "Content-Type" => "application/json" }, '"No restaurants"' ] if places.count < 1
 
         place = places.each.next
 
@@ -53,7 +53,7 @@ class LocationInterface < Sinatra::Base
     # - longitude
     post "/reverse" do
         place = Nominatim.reverse(params["latitude"], params["longitude"]).address_details(true).fetch
-        raise "Nothing found for given coordinates" if place.nil?
+        return [ 404, { "Content-Type" => "application/json" }, '"Nothing found for given coordinates"' ] if place.nil?
         address = place.address
         if not address.road
             Email.send( {
@@ -131,7 +131,7 @@ class LocationInterface < Sinatra::Base
         street_address = "#{split_address["street_name"]} #{split_address["street_number"]}"
         address_string = "#{street_address}, #{address["postal_code"]} #{address["city"]}"
         places = Nominatim.search(address_string).limit(1).address_details(true)
-        raise "No coordinates found for given address" if places.count < 1
+        return [ 404, { "Content-Type" => "application/json" }, '"No coordinates found for given address"' ] if places.count < 1
 
         place = places.each.next
 
