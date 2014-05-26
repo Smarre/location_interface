@@ -14,7 +14,7 @@ class ExceptionHandling
 
             unless contents["error_email"].nil?
 
-                sender_email = "location-error-mailer@slm.fi"
+                sender_email = contents["error_email"]["sender_email"]
 
                 message = <<-EOF
                 There was an error in location interface:

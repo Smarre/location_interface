@@ -150,31 +150,4 @@ class LocationInterface < Sinatra::Base
     end
 
     run! if app_file == $0
-
-rescue Exception => e
-    puts "nya"
-    exit 1
-    contents = Psych.load_file "config/config.yaml"
-
-    unless contents["error_email"].nil?
-        Net::SMTP.start contents["error_email"]["server"], contents["error_email"]["port"],
-                contents["error_email"]["username"], contents["error_email"]["password"], contents["error_email"]["method"] do |smtp|
-            sender_email = "dummy@email.nya"
-            message = <<-EOF
-            From: Location interface error catcher <#{sender_email}>
-            To: <#{contents["error_email"]["email"]}>
-            Subject: Error in location interface
-
-            There was an error in location interface:
-
-            #{e.message}
-
-            Backtrace:
-            #{e.backtrace}
-            EOF
-            smtp.send_message message, sender_email, contents["error_email"]["email"]
-        end
-    end
-
-    raise e
 end
