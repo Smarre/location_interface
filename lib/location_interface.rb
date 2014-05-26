@@ -40,7 +40,7 @@ class LocationInterface < Sinatra::Base
     post "/geocode" do
         address_string = "#{params["address"]}, #{params["postal_code"]} #{params["city"]}"
         places = Nominatim.search(address_string).limit(1).address_details(true)
-        return [ 404, { "Content-Type" => "application/json" }, '"No restaurants"' ] if places.count < 1
+        return [ 404, { "Content-Type" => "application/json" }, '"Nothing found with given address"' ] if places.count < 1
 
         place = places.each.next
 
