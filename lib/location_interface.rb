@@ -56,6 +56,8 @@ class LocationInterface < Sinatra::Base
         place = Nominatim.reverse(params["latitude"], params["longitude"]).address_details(true).fetch
         return [ 404, { "Content-Type" => "application/json" }, '"Nothing found for given coordinates"' ] if place.nil?
         address = place.address
+        return [ 404, { "Content-Type" => "application/json" }, '"Nothing found for given coordinates"' ] if address.nil?
+
         if not address.road
             Email.send( {
                 from: "location_interface@slm.fi",
@@ -65,6 +67,7 @@ class LocationInterface < Sinatra::Base
             })
             raise "Road not set in response. Response: #{place.inspect}"
         end
+
         hash = { "address" => "#{address.road} #{address.house_number}", "city" => address.city, "postal_code" => address.postcode }
         json hash
     end
