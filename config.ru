@@ -37,7 +37,7 @@ class ExceptionHandling
                 #[ 500, { "Content-Type" => "text/plain" }, "There was something too terribly wrong. Please contact the admins." ]
             end
 
-            [ 500, { "Content-Type" => "text/plain" }, e.message ]
+            [ 500, { "Content-Type" => "text/plain" }, [ e.message ] ]
         end
     end
 end
