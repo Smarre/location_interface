@@ -35,6 +35,8 @@ class Email
                     f.puts from
                     f.puts to
                     f.puts subject
+                    f.puts
+                    f.puts
                     f.puts message
                 end
             end

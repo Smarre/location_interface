@@ -10,6 +10,11 @@ require_relative "address"
 
 class LocationInterface < Sinatra::Base
 
+    configure do
+        set :dump_errors, false
+        set :raise_errors, true
+        set :show_exceptions, false
+    end
 
     helpers Sinatra::JSON
 
