@@ -38,7 +38,8 @@ class LocationInterface < Sinatra::Base
     #
     # Either address or postal code is required, not both.
     post "/geocode" do
-        address_string = "#{params["address"]}, #{params["postal_code"]} #{params["city"]}"
+        split_address = Address.split_street(params["address"])
+        address_string = "#{split_address["street_name"]}, #{params["postal_code"]} #{params["city"]}"
         places = Nominatim.search(address_string).limit(1).address_details(true)
         return [ 404, { "Content-Type" => "application/json" }, '"Nothing found with given address"' ] if places.count < 1
 
