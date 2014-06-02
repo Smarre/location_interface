@@ -58,17 +58,25 @@ class LocationInterface < Sinatra::Base
         address = place.address
         return [ 404, { "Content-Type" => "application/json" }, '"Nothing found for given coordinates"' ] if address.nil?
 
+        hash = { "city" => address.city, "postal_code" => address.postcode }
+
         if not address.road
             Email.send( {
                 from: "location_interface@slm.fi",
                 to: "tekninen@slm.fi",
-                subject: "Road in Nominatim result instead of street",
+                subject: "Road missing in Nominatim result",
                 message: "For some reason Nominatim result had road instead of street in the response. Debug this: #{place.inspect}"
             })
-            raise "Road not set in response. Response: #{place.inspect}"
+            #raise "Road not set in response. Response: #{place.inspect}"
         end
 
-        hash = { "address" => "#{address.road} #{address.house_number}", "city" => address.city, "postal_code" => address.postcode }
+        if address.road
+            hash["address"] = "#{address.road}"
+            if address.house_number
+                 hash["address"] += " #{address.house_number}"
+            end
+        end
+
         json hash
     end
 
