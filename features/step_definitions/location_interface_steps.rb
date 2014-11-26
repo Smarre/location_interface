@@ -49,15 +49,15 @@ When(/^I reverse geocode given coordinates$/) do
     @coordinates.each do |coordinate_hash|
         options = { body: coordinate_hash }
         response = HTTParty.post("http://localhost:9999/reverse", options)
-        puts response.body #if response.code != 200
+        #puts response.body #if response.code != 200
         expect(response.code).to eq(200)
         @responses << response
     end
 end
 
 Then(/^distance between these addresses should be (\d+.\d+) kilometers$/) do |km_amount|
-    total_distance = @response.body.to_f
-    expect(km_amount.to_f * 1000).to eq(total_distance)
+    total_distance = @response.body
+    expect(km_amount).to eq(total_distance)
 end
 
 Then(/^resulting coordinates should be:$/) do |table|
