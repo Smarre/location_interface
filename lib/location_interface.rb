@@ -128,6 +128,7 @@ class LocationInterface < Sinatra::Base
             from["longitude"] = params["from"]["longitude"]
         else
             from["latitude"], from["longitude"] = address_to_coordinates params["from"]
+            return [ from["latitude"], from["longitude"] ] if from["latitude"] == 404 # return error in case we didn’t get proper result
         end
 
         unless params["to"]["latitude"].nil?
@@ -135,6 +136,7 @@ class LocationInterface < Sinatra::Base
             to["longitude"] = params["to"]["longitude"]
         else
             to["latitude"], to["longitude"] = address_to_coordinates params["to"]
+            return [ to["latitude"], to["longitude"] ] if to["latitude"] == 404 # return error in case we didn’t get proper result
         end
 
         config = Psych.load_file "config/config.yaml"
@@ -151,9 +153,13 @@ class LocationInterface < Sinatra::Base
     def address_to_coordinates address
         split_address = Address.split_street(address["address"])
         street_address = "#{split_address[:street_name]} #{split_address[:street_number]}"
-        address_string = "#{street_address}, #{address["postal_code"]} #{address["city"]}"
+        unless address["city"].empty?
+            address_string = "#{street_address}, #{address["city"]}"
+        else
+            address_string = "#{street_address}, #{address["postal_code"]}"
+        end
         places = Nominatim.search(address_string).limit(1).address_details(true)
-        return [ 404, { "Content-Type" => "application/json" }, '"No coordinates found for given address"' ] if places.count < 1
+        return 404, { "Content-Type" => "application/json" }, '"No coordinates found for given address"' if places.count < 1
 
         place = places.each.next
 

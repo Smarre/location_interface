@@ -29,3 +29,13 @@ Feature: Location
             | Linjatie 1              | Varpaisjärvi | 73200       |
         When I calculate route between these two addresses
         Then distance between these addresses should be 420.858 kilometers
+
+    Scenario: customer lives in an apartment, so there is extraneous components in an address
+        Given there in following address to route from:
+            | address                 | city   | postal_code |
+            | Hakopolku 2             | Vantaa | 01360       |
+        And there in following address to route to:
+            | address                 | city         | postal_code |
+            | Hiekkaharjuntie 18 A 1  | Vantaa | 01300       |
+        When I calculate route between these two addresses
+        Then distance between these addresses should be 3.873 kilometers

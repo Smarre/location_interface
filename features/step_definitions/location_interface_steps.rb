@@ -22,7 +22,7 @@ end
 When(/^I calculate route between these two addresses$/) do
     options = { body: { from: @from_address, to: @to_address } }
     @response = HTTParty.post("http://localhost:9999/distance_by_roads", options)
-    #puts response.body if response.code != 200
+    puts @response.body if @response.code != 200
     expect(@response.code).to be(200)
 end
 
