@@ -4,6 +4,7 @@ require "sinatra/json"
 require "nominatim"
 require "psych"
 require "httparty"
+require "logger"
 
 require_relative "email"
 require_relative "address"
@@ -14,17 +15,26 @@ class LocationInterface < Sinatra::Base
         set :dump_errors, false
         set :raise_errors, true
         set :show_exceptions, false
+
+        contents = Psych.load_file "config/config.yaml"
+        Nominatim.configure do |config|
+            config.email = contents["nominatim"]["email"]
+            config.endpoint = contents["nominatim"]["service_url"]
+            config.search_url = "search.php"
+            config.reverse_url = "reverse.php"
+        end
     end
 
     helpers Sinatra::JSON
 
-    before do
-        parse_config
-    end
-
     error Exception do
         puts "argh"
         exit 1
+    end
+
+    before do
+        @logger ||= Logger.new "log/loggy.log", "daily"
+        @logger.info "#{request.request_method} #{request.path} #{request.query_string} #{request.POST}"
     end
 
     get "/" do
@@ -39,7 +49,7 @@ class LocationInterface < Sinatra::Base
     # Either address or postal code is required, not both.
     post "/geocode" do
         split_address = Address.split_street(params["address"])
-        address_string = "#{split_address["street_name"]}, #{params["postal_code"]} #{params["city"]}"
+        address_string = "#{split_address[:street_name]} #{split_address[:street_number]}, #{params[:postal_code]} #{params[:city]}"
         places = Nominatim.search(address_string).limit(1).address_details(true)
         return [ 404, { "Content-Type" => "application/json" }, '"Nothing found with given address"' ] if places.count < 1
 
@@ -140,7 +150,7 @@ class LocationInterface < Sinatra::Base
 
     def address_to_coordinates address
         split_address = Address.split_street(address["address"])
-        street_address = "#{split_address["street_name"]} #{split_address["street_number"]}"
+        street_address = "#{split_address[:street_name]} #{split_address[:street_number]}"
         address_string = "#{street_address}, #{address["postal_code"]} #{address["city"]}"
         places = Nominatim.search(address_string).limit(1).address_details(true)
         return [ 404, { "Content-Type" => "application/json" }, '"No coordinates found for given address"' ] if places.count < 1
@@ -148,17 +158,6 @@ class LocationInterface < Sinatra::Base
         place = places.each.next
 
         return place.lat, place.lon
-    end
-
-    def parse_config
-        contents = Psych.load_file "config/config.yaml"
-
-        Nominatim.configure do |config|
-            config.email = contents["nominatim"]["email"]
-            config.endpoint = contents["nominatim"]["service_url"]
-            config.search_url = "search.php"
-            config.reverse_url = "reverse.php"
-        end
     end
 
     run! if app_file == $0
