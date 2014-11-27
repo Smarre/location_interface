@@ -52,4 +52,13 @@ class Email
         true
     end
 
+    def self.error_email message
+        Email.send( {
+                from: "location_interface@slm.fi",
+                to: "tekninen@slm.fi",
+                subject: "location_interface encountered an error",
+                message: message
+            })
+    end
+
 end

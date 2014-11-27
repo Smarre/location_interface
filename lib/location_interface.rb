@@ -8,13 +8,14 @@ require "logger"
 
 require_relative "email"
 require_relative "address"
+require_relative "google"
 
 class LocationInterface < Sinatra::Base
 
     configure do
-        set :dump_errors, false
+        set :dump_errors, true
         set :raise_errors, true
-        set :show_exceptions, false
+        set :show_exceptions, true
 
         contents = Psych.load_file "config/config.yaml"
         Nominatim.configure do |config|
@@ -128,7 +129,7 @@ class LocationInterface < Sinatra::Base
             from["longitude"] = params["from"]["longitude"]
         else
             from["latitude"], from["longitude"] = address_to_coordinates params["from"]
-            return [ from["latitude"], from["longitude"] ] if from["latitude"] == 404 # return error in case we didn’t get proper result
+            return if from["latitude"].nil? # return in case we didn’t get proper result
         end
 
         unless params["to"]["latitude"].nil?
@@ -136,16 +137,36 @@ class LocationInterface < Sinatra::Base
             to["longitude"] = params["to"]["longitude"]
         else
             to["latitude"], to["longitude"] = address_to_coordinates params["to"]
-            return [ to["latitude"], to["longitude"] ] if to["latitude"] == 404 # return error in case we didn’t get proper result
+            return if to["latitude"].nil? # return in case we didn’t get proper result
         end
+
+        #@logger.info from
+        #@logger.info to
 
         config = Psych.load_file "config/config.yaml"
         uri = "#{config["osrm"]["service_url"]}/viaroute?loc=#{from["latitude"]}," +
                 "#{from["longitude"]}&loc=#{to["latitude"]},#{to["longitude"]}"
+        #@logger.info uri
         response = HTTParty.get uri
 
         body = JSON.parse response.body
-        json body["route_summary"]["total_distance"] / 1000.0
+
+        distance = nil # distance in kilometers
+        if body["status"] != 0
+            # OSRM was not able to route us, so let’s try Google’s thingy instead
+            google = Google.new
+            distance = google.distance_by_roads to, from
+            if distance.nil?
+                @logger.error response.body
+                status 404
+                body "There was no route found between the given addresses"
+                return
+            end
+        else
+            distance = body["route_summary"]["total_distance"] / 1000.0
+        end
+
+        json distance
     end
 
     private
@@ -159,7 +180,11 @@ class LocationInterface < Sinatra::Base
             address_string = "#{street_address}, #{address["postal_code"]}"
         end
         places = Nominatim.search(address_string).limit(1).address_details(true)
-        return 404, { "Content-Type" => "application/json" }, '"No coordinates found for given address"' if places.count < 1
+        if places.count < 1
+            status 404
+            body "No coordinates found for given address"
+            return nil
+        end
 
         place = places.each.next
 
