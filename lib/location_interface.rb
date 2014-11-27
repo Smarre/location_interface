@@ -178,6 +178,9 @@ class LocationInterface < Sinatra::Base
     end
 
     def address_to_coordinates address
+        latitude = nil
+        longitude = nil
+
         split_address = Address.split_street(address["address"])
         street_address = "#{split_address[:street_name]} #{split_address[:street_number]}"
         unless address["city"].empty?
@@ -187,7 +190,10 @@ class LocationInterface < Sinatra::Base
         end
         places = Nominatim.search(address_string).limit(1).address_details(true)
         place = places.first
-        if places.count < 1
+        if places.count > 0
+            latitude = place.lat
+            longitude = place.lon
+        else
             # let’s first try OSM’s Nominatim service if it gives better results to us
             contents = Psych.load_file "config/config.yaml"
             Nominatim.configure do |config|
@@ -202,16 +208,22 @@ class LocationInterface < Sinatra::Base
 
             if places.count > 0
                 Email.error_email "For some reason official Nominatim returned results but ours didn’t, for address #{address}"
+                latitude = place.lat
+                longitude = place.lon
             else
-                status 404
-                body "No coordinates found for given address"
-                return nil
+                # If even that failed, let’s still try with Google
+                google = Google.new
+                latitude, longitude = google.geocode address_string
+
+                if latitude.nil?
+                    status 404
+                    body "No coordinates found for given address"
+                    return nil
+                end
             end
         end
 
-        place = places.each.next
-
-        return place.lat, place.lon
+        return latitude, longitude
     end
 
     run! if app_file == $0
