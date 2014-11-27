@@ -12,11 +12,7 @@ require_relative "google"
 
 class LocationInterface < Sinatra::Base
 
-    configure do
-        set :dump_errors, true
-        set :raise_errors, true
-        set :show_exceptions, true
-
+    def self.configure_nominatim
         contents = Psych.load_file "config/config.yaml"
         Nominatim.configure do |config|
             config.email = contents["nominatim"]["email"]
@@ -24,6 +20,14 @@ class LocationInterface < Sinatra::Base
             config.search_url = "search.php"
             config.reverse_url = "reverse.php"
         end
+    end
+
+    configure do
+        set :dump_errors, true
+        set :raise_errors, true
+        set :show_exceptions, true
+
+        LocationInterface.configure_nominatim
     end
 
     helpers Sinatra::JSON
@@ -140,19 +144,11 @@ class LocationInterface < Sinatra::Base
             return if to["latitude"].nil? # return in case we didn’t get proper result
         end
 
-        #@logger.info from
-        #@logger.info to
-
-        config = Psych.load_file "config/config.yaml"
-        uri = "#{config["osrm"]["service_url"]}/viaroute?loc=#{from["latitude"]}," +
-                "#{from["longitude"]}&loc=#{to["latitude"]},#{to["longitude"]}"
-        #@logger.info uri
-        response = HTTParty.get uri
-
-        body = JSON.parse response.body
+        body = distance_by_roads_with_osrm from, to
 
         distance = nil # distance in kilometers
         if body["status"] != 0
+            #
             # OSRM was not able to route us, so let’s try Google’s thingy instead
             google = Google.new
             distance = google.distance_by_roads to, from
@@ -171,6 +167,16 @@ class LocationInterface < Sinatra::Base
 
     private
 
+    def distance_by_roads_with_osrm from, to
+        config = Psych.load_file "config/config.yaml"
+        uri = "#{config["osrm"]["service_url"]}/viaroute?loc=#{from["latitude"]}," +
+                "#{from["longitude"]}&loc=#{to["latitude"]},#{to["longitude"]}"
+        #@logger.info uri
+        response = HTTParty.get uri
+
+        JSON.parse response.body
+    end
+
     def address_to_coordinates address
         split_address = Address.split_street(address["address"])
         street_address = "#{split_address[:street_name]} #{split_address[:street_number]}"
@@ -180,10 +186,27 @@ class LocationInterface < Sinatra::Base
             address_string = "#{street_address}, #{address["postal_code"]}"
         end
         places = Nominatim.search(address_string).limit(1).address_details(true)
+        place = places.first
         if places.count < 1
-            status 404
-            body "No coordinates found for given address"
-            return nil
+            # let’s first try OSM’s Nominatim service if it gives better results to us
+            contents = Psych.load_file "config/config.yaml"
+            Nominatim.configure do |config|
+                config.email = contents["nominatim"]["email"]
+                config.endpoint = "http://nominatim.openstreetmap.org"
+                config.search_url = "search.php"
+                config.reverse_url = "reverse.php"
+            end
+            places = Nominatim.search(address_string).limit(1).address_details(true)
+            place = places.first
+            LocationInterface.configure_nominatim
+
+            if places.count > 0
+                Email.error_email "For some reason official Nominatim returned results but ours didn’t, for address #{address}"
+            else
+                status 404
+                body "No coordinates found for given address"
+                return nil
+            end
         end
 
         place = places.each.next

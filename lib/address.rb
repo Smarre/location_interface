@@ -17,7 +17,7 @@ class Address
 
         unless splitted[2].nil?
             splitted.delete_at 0
-            splitted.delete_at 1
+            splitted.delete_at 0
             house_number = splitted.join " "
         end
 
