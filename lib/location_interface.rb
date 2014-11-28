@@ -191,6 +191,7 @@ class LocationInterface < Sinatra::Base
             address_string = "#{street_address}, #{address["postal_code"]}"
         end
         places = Nominatim.search(address_string).limit(1).address_details(true)
+        #@logger.info address_string
         place = places.first
         if places.count > 0
             latitude = place.lat

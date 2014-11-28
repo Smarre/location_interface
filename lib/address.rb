@@ -9,7 +9,7 @@ class Address
 
         street.gsub! /,/, ""
         splitted = street.split " "
-        iter = splitted.each
+        iter = splitted.dup.each
         street_name = iter.next
         splitted.delete_at 0
 
