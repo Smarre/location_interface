@@ -9,17 +9,21 @@ class Address
 
         street.gsub! /,/, ""
         splitted = street.split " "
-        street_name = splitted[0]
+        iter = splitted.each
+        street_name = iter.next
+        splitted.delete_at 0
 
-        unless splitted[1].nil?
-            street_number = splitted[1]
+        iter.each do |part|
+            if part[0] =~ /[[:digit:]]/
+                street_number = part
+                splitted.delete_at 0
+                break
+            end
+            street_name += " #{part}"
+            splitted.delete_at 0
         end
 
-        unless splitted[2].nil?
-            splitted.delete_at 0
-            splitted.delete_at 0
-            house_number = splitted.join " "
-        end
+        house_number = splitted.join " "
 
         {
             street_name: street_name,

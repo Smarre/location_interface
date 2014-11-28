@@ -73,7 +73,9 @@ class LocationInterface < Sinatra::Base
         address = place.address
         return [ 404, { "Content-Type" => "application/json" }, '"Nothing found for given coordinates"' ] if address.nil?
 
-        hash = { "city" => address.city, "postal_code" => address.postcode }
+        city = address.city || address.town
+
+        hash = { "city" => city, "postal_code" => address.postcode }
 
         if not address.road
             Email.send( {

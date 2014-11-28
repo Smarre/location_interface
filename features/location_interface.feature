@@ -9,7 +9,7 @@ Feature: Location
         When I geocode given addresses
         Then resulting coordinates should be:
             | latitude   | longitude       |
-            | 60.3961465 | 25.107054513076 |
+            | 60.39616065 | 25.1070625157963 |
 
     Scenario: convert coordinates to address
         Given there is following coordinates:
@@ -28,7 +28,7 @@ Feature: Location
             | address                 | city         | postal_code |
             | Linjatie 1              | Varpaisjärvi | 73200       |
         When I calculate route between these two addresses
-        Then distance between these addresses should be 420.858 kilometers
+        Then distance between these addresses should be 420.856 kilometers
 
     Scenario: customer lives in an apartment, so there is extraneous components in an address
         Given there in following address to route from:
@@ -38,7 +38,7 @@ Feature: Location
             | address                 | city   | postal_code |
             | Hiekkaharjuntie 18 A 1  | Vantaa | 01300       |
         When I calculate route between these two addresses
-        Then distance between these addresses should be 3.873 kilometers
+        Then distance between these addresses should be 3.77 kilometers
 
     Scenario: also hustbacka addresses needs to work
         Given there in following address to route from:
