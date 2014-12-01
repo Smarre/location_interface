@@ -28,7 +28,7 @@ Feature: Location
             | address                 | city         | postal_code |
             | Linjatie 1              | Varpaisjärvi | 73200       |
         When I calculate route between these two addresses
-        Then distance between these addresses should be 420.856 kilometers
+        Then distance between these addresses should be 420.594 kilometers
 
     Scenario: customer lives in an apartment, so there is extraneous components in an address
         Given there in following address to route from:
@@ -38,7 +38,7 @@ Feature: Location
             | address                 | city   | postal_code |
             | Hiekkaharjuntie 18 A 1  | Vantaa | 01300       |
         When I calculate route between these two addresses
-        Then distance between these addresses should be 3.77 kilometers
+        Then distance between these addresses should be 4.062 kilometers
 
     Scenario: also hustbacka addresses needs to work
         Given there in following address to route from:
@@ -48,4 +48,14 @@ Feature: Location
             | address                 | city   | postal_code |
             | Liesitori 1             | Vantaa | 01600       |
         When I calculate route between these two addresses
-        Then distance between these addresses should be 2.231 kilometers
+        Then distance between these addresses should be 2.19 kilometers
+
+    Scenario: when querying coordinates for address in Vantaa, we don’t want coordinates for address in Helsinki
+        Given there in following address to route from:
+            | address                 | city   | postal_code |
+            | Majavatie 9 b 2         | Vantaa | 20540       |
+        And there in following address to route to:
+            | address                 | city   | postal_code |
+            | Maakotkantie 6          | Vantaa | 01450       |
+        When I calculate route between these two addresses
+        Then distance between these addresses should be 1.702 kilometers

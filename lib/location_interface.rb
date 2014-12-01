@@ -190,7 +190,7 @@ class LocationInterface < Sinatra::Base
         else
             address_string = "#{street_address}, #{address["postal_code"]}"
         end
-        places = Nominatim.search(address_string).limit(1).address_details(true)
+        places = Nominatim.search(address_string).limit(1).address_details(true).featuretype("city")
         #@logger.info address_string
         place = places.first
         if places.count > 0
@@ -205,7 +205,7 @@ class LocationInterface < Sinatra::Base
                 config.search_url = "search.php"
                 config.reverse_url = "reverse.php"
             end
-            places = Nominatim.search(address_string).limit(1).address_details(true)
+            places = Nominatim.search(address_string).limit(1).address_details(true).featuretype("city")
             place = places.first
             LocationInterface.configure_nominatim
 
