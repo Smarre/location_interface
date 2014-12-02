@@ -155,7 +155,7 @@ class LocationInterface < Sinatra::Base
             google = Google.new
             distance = google.distance_by_roads to, from
             if distance.nil?
-                @logger.error response.body
+                Email.error_email "Google wasn’t able to route us: #{response.body}"
                 status 404
                 body "There was no route found between the given addresses"
                 return

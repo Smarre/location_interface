@@ -14,7 +14,10 @@ class Google
 
         response = HTTParty.get url
         data = JSON.parse response.body
-        return nil if not data["status"] == "OK"
+        if not data["status"] == "OK"
+            Email::error_email "Invalid response from Google’s geocode api with url: #{url}"
+            return nil
+        end
 
         latitude = data["results"][0]["geometry"]["location"]["lat"]
         longitude = data["results"][0]["geometry"]["location"]["lng"]
