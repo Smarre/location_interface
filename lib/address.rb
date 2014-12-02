@@ -13,7 +13,9 @@ class Address
         street_name = iter.next
         splitted.delete_at 0
 
-        iter.each do |part|
+        begin
+        loop do
+            part = iter.next
             if part[0] =~ /[[:digit:]]/
                 street_number = part
                 splitted.delete_at 0
@@ -21,6 +23,9 @@ class Address
             end
             street_name += " #{part}"
             splitted.delete_at 0
+        end
+        rescue StopIteration => e
+            # all fine
         end
 
         house_number = splitted.join " "
