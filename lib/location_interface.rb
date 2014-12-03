@@ -5,6 +5,7 @@ require "nominatim"
 require "psych"
 require "httparty"
 require "logger"
+require "sqlite3"
 
 require_relative "email"
 require_relative "address"
@@ -25,7 +26,8 @@ class LocationInterface < Sinatra::Base
     configure do
         set :dump_errors, true
         set :raise_errors, true
-        set :show_exceptions, true
+        #set :show_exceptions, false
+        set :show_exceptions, true # for debugging
 
         LocationInterface.configure_nominatim
     end
@@ -55,6 +57,7 @@ class LocationInterface < Sinatra::Base
     post "/geocode" do
         split_address = Address.split_street(params["address"])
         address_string = "#{split_address[:street_name]} #{split_address[:street_number]}, #{params[:postal_code]} #{params[:city]}"
+        sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "nominatim geocode", address_string ]
         places = Nominatim.search(address_string).limit(1).address_details(true)
         return [ 404, { "Content-Type" => "application/json" }, '"Nothing found with given address"' ] if places.count < 1
 
@@ -68,6 +71,7 @@ class LocationInterface < Sinatra::Base
     # - latitude
     # - longitude
     post "/reverse" do
+        sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "nominatim reverse", params.inspect ]
         place = Nominatim.reverse(params["latitude"], params["longitude"]).address_details(true).fetch
         return [ 404, { "Content-Type" => "application/json" }, '"Nothing found for given coordinates"' ] if place.nil?
         address = place.address
@@ -134,7 +138,7 @@ class LocationInterface < Sinatra::Base
             from["latitude"] = params["from"]["latitude"]
             from["longitude"] = params["from"]["longitude"]
         else
-            from["latitude"], from["longitude"] = address_to_coordinates params["from"]
+            from["latitude"], from["longitude"] = Address.address_to_coordinates params["from"]
             return if from["latitude"].nil? # return in case we didn’t get proper result
         end
 
@@ -142,7 +146,7 @@ class LocationInterface < Sinatra::Base
             to["latitude"] = params["to"]["latitude"]
             to["longitude"] = params["to"]["longitude"]
         else
-            to["latitude"], to["longitude"] = address_to_coordinates params["to"]
+            to["latitude"], to["longitude"] = Address.address_to_coordinates params["to"]
             return if to["latitude"].nil? # return in case we didn’t get proper result
         end
 
@@ -174,59 +178,24 @@ class LocationInterface < Sinatra::Base
         uri = "#{config["osrm"]["service_url"]}/viaroute?loc=#{from["latitude"]}," +
                 "#{from["longitude"]}&loc=#{to["latitude"]},#{to["longitude"]}"
         #@logger.info uri
+        sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "osrm distance_by_roads", uri ]
         response = HTTParty.get uri
 
         JSON.parse response.body
     end
 
-    def address_to_coordinates address
-        latitude = nil
-        longitude = nil
+    def sqlite
+        return @sqlite if not @sqlite.nil?
 
-        split_address = Address.split_street(address["address"])
-        street_address = "#{split_address[:street_name]} #{split_address[:street_number]}"
-        unless address["city"].empty?
-            address_string = "#{street_address}, #{address["city"]}"
-        else
-            address_string = "#{street_address}, #{address["postal_code"]}"
-        end
-        places = Nominatim.search(address_string).limit(1).address_details(true).featuretype("city")
-        #@logger.info address_string
-        place = places.first
-        if places.count > 0
-            latitude = place.lat
-            longitude = place.lon
-        else
-            # let’s first try OSM’s Nominatim service if it gives better results to us
-            contents = Psych.load_file "config/config.yaml"
-            Nominatim.configure do |config|
-                config.email = contents["nominatim"]["email"]
-                config.endpoint = "http://nominatim.openstreetmap.org"
-                config.search_url = "search.php"
-                config.reverse_url = "reverse.php"
-            end
-            places = Nominatim.search(address_string).limit(1).address_details(true).featuretype("city")
-            place = places.first
-            LocationInterface.configure_nominatim
+        @sqlite = SQLite3::Database.new "requests.sqlite3"
+        @sqlite.execute <<-SQL
+        create table if not exists loggy (
+            service varchar(50),
+            url varchar(100)
+        );
+        SQL
 
-            if places.count > 0
-                Email.error_email "For some reason official Nominatim returned results but ours didn’t, for address #{address}"
-                latitude = place.lat
-                longitude = place.lon
-            else
-                # If even that failed, let’s still try with Google
-                google = Google.new
-                latitude, longitude = google.geocode address_string
-
-                if latitude.nil?
-                    status 404
-                    body "No coordinates found for given address"
-                    return nil
-                end
-            end
-        end
-
-        return latitude, longitude
+        @sqlite
     end
 
     run! if app_file == $0
