@@ -93,7 +93,7 @@ class Address
         LocationInterface.configure_nominatim
 
         if not lat.nil?
-            Email.error_email "For some reason official Nominatim returned results but ours didn’t, for address #{address}"
+            Email.error_email "For some reason official Nominatim returned results but ours didn’t, for address #{address_string}"
             return lat, lon
         end
         nil
