@@ -51,23 +51,24 @@ class Address
 
         split_address = self.split_street(address["address"])
         street_address = "#{split_address[:street_name]} #{split_address[:street_number]}"
+        address_with_postal_code_string = "#{street_address}, #{address["postal_code"]} #{address["city"]}"
         unless address["city"].empty?
             address_string = "#{street_address}, #{address["city"]}"
         else
             address_string = "#{street_address}, #{address["postal_code"]}"
         end
-        lat, lon = self.nominatim_query address_string, "city"
+        lat, lon = self.nominatim_query address_with_postal_code_string
         return lat, lon unless lat.nil?
 
-        # didn’t get results, let’s try without featuretype then
+        # didn’t get results, let’s try without postal code then
         lat, lon = self.nominatim_query address_string
         return lat, lon unless lat.nil?
 
         # let’s try OSM’s Nominatim service if it gives better results to us
-        lat, lon = self.official_nominatim_query address_string, "city"
+        lat, lon = self.official_nominatim_query address_with_postal_code_string
         return lat, lon unless lat.nil?
 
-        # didn’t get results, let’s try without featuretype then
+        # didn’t get results, let’s try without postal code then
         lat, lon = self.official_nominatim_query address_string
         return lat, lon unless lat.nil?
 
