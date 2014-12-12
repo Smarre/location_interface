@@ -126,6 +126,7 @@ DEPENDENCIES
   email
   httparty
   jeweler
+  nokogiri
   nominatim!
   rdoc
   rspec

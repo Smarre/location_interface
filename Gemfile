@@ -7,6 +7,7 @@ gem "nominatim", :git => "git://github.com/Smarre/nominatim.git"
 gem "email"
 gem "httparty"
 gem "sqlite3"
+gem "nokogiri" # used for Google printpage parsing, so for most of cases useless
 
 group :development do
     gem "rdoc"

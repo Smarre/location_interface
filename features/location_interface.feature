@@ -59,3 +59,13 @@ Feature: Location
             | Maakotkantie 6          | Vantaa | 01450       |
         When I calculate route between these two addresses
         Then distance between these addresses should be 1.702 kilometers
+
+    Scenario: in case everything else fails, we want to try with Google’s print page routing
+        Given there in following address to route from:
+            | address                 | city   | postal_code |
+            | Majavatie 9 b 2         | Vantaa | 20540       |
+        And there in following address to route to:
+            | address                 | city   | postal_code |
+            | Maakotkantie 6          | Vantaa | 01450       |
+        When I calculate route using Google print page between these two addresses
+        Then distance between these addresses should be 1.702 kilometers

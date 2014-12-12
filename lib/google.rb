@@ -2,6 +2,7 @@
 require "uri"
 
 require "httparty"
+require "nokogiri"
 
 require_relative "email"
 
@@ -39,6 +40,7 @@ class Google
 
     private
 
+    # Takes arrays that contains latitude and longitude as arguments
     # Returns distance in kilometers or nil
     def search_from_api from, to
         result_language = "fi_FI"
@@ -82,7 +84,8 @@ class Google
 
     # returns distance in kilometers or nil
     def distance_from_print_page from, to
-        return nil # since it’s not allowed to use this page for distance calculation, it’s disabled
+        # TODO: add entry to config
+        #return nil # since it’s not allowed to use this page for distance calculation, it’s disabled
 
         origin = "#{from["latitude"]} #{from["longitude"]}"
         destination = "#{to["latitude"]} #{to["longitude"]}"
@@ -93,7 +96,10 @@ class Google
 
         response = HTTParty.get url
 
-        # TODO: parse response
+        doc = Nokogiri::HTML response.body
+        sums = doc.css(".ddr_sum")
+        distance = sums.last.content
+        distance.split(" ")[0].sub ",", "."
     end
 
 end
