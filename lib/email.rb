@@ -53,9 +53,10 @@ class Email
     end
 
     def self.error_email message
+        config = LocationInterface.config
         Email.send( {
-                from: "location_interface@slm.fi",
-                to: "tekninen@slm.fi",
+                from: config["error_email"]["sender_email"],
+                to: config["error_email"]["email"],
                 subject: "location_interface encountered an error",
                 message: message
             })

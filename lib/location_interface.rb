@@ -13,8 +13,12 @@ require_relative "google"
 
 class LocationInterface < Sinatra::Base
 
+    def self.config
+        @@config ||= Psych.load_file "config/config.yaml"
+    end
+
     def self.configure_nominatim
-        contents = Psych.load_file "config/config.yaml"
+        contents = self.config
         Nominatim.configure do |config|
             config.email = contents["nominatim"]["email"]
             config.endpoint = contents["nominatim"]["service_url"]
@@ -82,9 +86,10 @@ class LocationInterface < Sinatra::Base
         hash = { "city" => city, "postal_code" => address.postcode }
 
         if not address.road
+            config = LocationInterface.config
             Email.send( {
-                from: "location_interface@slm.fi",
-                to: "tekninen@slm.fi",
+                from: config["error_email"]["sender_email"],
+                to: config["error_email"]["email"],
                 subject: "Road missing in Nominatim result",
                 message: "For some reason Nominatim result had road instead of street in the response. Debug this: #{place.inspect}"
             })
@@ -174,7 +179,7 @@ class LocationInterface < Sinatra::Base
     private
 
     def distance_by_roads_with_osrm from, to
-        config = Psych.load_file "config/config.yaml"
+        config = LocationInterface.config
         uri = "#{config["osrm"]["service_url"]}/viaroute?loc=#{from["latitude"]}," +
                 "#{from["longitude"]}&loc=#{to["latitude"]},#{to["longitude"]}"
         #@logger.info uri
