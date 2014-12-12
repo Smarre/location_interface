@@ -59,15 +59,8 @@ class LocationInterface < Sinatra::Base
     #
     # Either address or postal code is required, not both.
     post "/geocode" do
-        split_address = Address.split_street(params["address"])
-        address_string = "#{split_address[:street_name]} #{split_address[:street_number]}, #{params[:postal_code]} #{params[:city]}"
-        sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "nominatim geocode", address_string ]
-        places = Nominatim.search(address_string).limit(1).address_details(true)
-        return [ 404, { "Content-Type" => "application/json" }, '"Nothing found with given address"' ] if places.count < 1
-
-        place = places.each.next
-
-        hash = { latitude: place.lat, longitude: place.lon }
+        latitude, longitude = Address.address_to_coordinates params["address"]
+        hash = { latitude: latitude, longitude: longitude }
         json hash
     end
 
