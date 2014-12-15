@@ -59,7 +59,7 @@ class LocationInterface < Sinatra::Base
     #
     # Either address or postal code is required, not both.
     post "/geocode" do
-        latitude, longitude = Address.address_to_coordinates params["address"]
+        latitude, longitude = Address.address_to_coordinates params
         hash = { latitude: latitude, longitude: longitude }
         json hash
     end
