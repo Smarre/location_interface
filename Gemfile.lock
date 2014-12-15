@@ -1,5 +1,5 @@
 GIT
-  remote: git://github.com/Smarre/nominatim.git
+  remote: git://github.com/Smarre/ruby-nominatim.git
   revision: 98902046c772b7e1073bf82a29c53d59a83cc4d3
   specs:
     nominatim (0.0.5)
