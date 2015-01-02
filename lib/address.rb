@@ -105,7 +105,7 @@ class Address
 
     def self.nominatim_query address_string, featuretype = nil
         sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "nominatim address_to_coordinates", address_string ]
-        places = Nominatim.search(address_string).limit(1).address_details(true).featuretype("city")
+        places = Nominatim.search(address_string).limit(1).address_details(true)
         places.featuretype(featuretype)
         #@@logger.info address_string
         begin
