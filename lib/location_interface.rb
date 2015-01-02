@@ -68,7 +68,7 @@ class LocationInterface < Sinatra::Base
     # - latitude
     # - longitude
     post "/reverse" do
-        sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "nominatim reverse", params.inspect ]
+        LocationInterface.sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "nominatim reverse", params.inspect ]
         place = Nominatim.reverse(params["latitude"], params["longitude"]).address_details(true).fetch
         return [ 404, { "Content-Type" => "application/json" }, '"Nothing found for given coordinates"' ] if place.nil?
         address = place.address
@@ -176,24 +176,27 @@ class LocationInterface < Sinatra::Base
         uri = "#{config["osrm"]["service_url"]}/viaroute?loc=#{from["latitude"]}," +
                 "#{from["longitude"]}&loc=#{to["latitude"]},#{to["longitude"]}"
         #@logger.info uri
-        sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "osrm distance_by_roads", uri ]
+        LocationInterface.sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "osrm distance_by_roads", uri ]
         response = HTTParty.get uri
 
         JSON.parse response.body
     end
 
-    def sqlite
-        return @sqlite if not @sqlite.nil?
+    def self.sqlite
+        @@sqlite ||= nil
+        return @@sqlite if not @@sqlite.nil?
 
-        @sqlite = SQLite3::Database.new "requests.sqlite3"
-        @sqlite.execute <<-SQL
+        @@sqlite = SQLite3::Database.new "requests.sqlite3"
+        @@sqlite.execute <<-SQL
         create table if not exists loggy (
+            id integer primary key,
             service varchar(50),
-            url varchar(100)
+            url varchar(100),
+            timestamp datetime default current_timestamp
         );
         SQL
 
-        @sqlite
+        @@sqlite
     end
 
     run! if app_file == $0

@@ -85,6 +85,8 @@ class Address
         nil
     end
 
+    private
+
     def self.official_nominatim_query address_string, featuretype = nil
         contents = Psych.load_file "config/config.yaml"
         Nominatim.configure do |config|
@@ -120,20 +122,8 @@ class Address
         nil
     end
 
-
-    # TODO: this is dupe from LocationInterface
     def self.sqlite
-        return @@sqlite if not @@sqlite.nil?
-
-        @@sqlite = SQLite3::Database.new "requests.sqlite3"
-        @@sqlite.execute <<-SQL
-        create table if not exists loggy (
-            service varchar(50),
-            url varchar(100)
-        );
-        SQL
-
-        @@sqlite
+        LocationInterface.send :sqlite
     end
 
 end
