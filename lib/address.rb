@@ -108,7 +108,14 @@ class Address
         places = Nominatim.search(address_string).limit(1).address_details(true).featuretype("city")
         places.featuretype(featuretype)
         #@@logger.info address_string
-        place = places.first
+        begin
+            place = places.first
+        rescue MultiJson::ParseError => e
+            # This means that we were not able to get proper answer from the service,
+            # so let’s send an error email.
+            Email.error_email "The nominatim thingy sent invalid response to us."
+            return nil
+        end
         return place.lat, place.lon if places.count > 0
         nil
     end
