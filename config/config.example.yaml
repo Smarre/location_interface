@@ -5,6 +5,10 @@ nominatim:
     service_url: http://open.mapquestapi.com/nominatim/v1
 
 fallback_nominatim: http://nominatim.openstreetmap.org
+# memcached:
+#    server: http://localhost:11211
+# 0 means infinite
+#    expire_time_in_seconds: 360
 
 error_email:
     email: "nyan@desu.fi"

@@ -28,6 +28,7 @@ GEM
     descendants_tracker (0.0.4)
       thread_safe (~> 0.3, >= 0.3.1)
     diff-lcs (1.2.5)
+    digest-murmurhash (1.1.0)
     docile (1.1.5)
     email (0.1.0)
       public_suffix
@@ -123,6 +124,7 @@ DEPENDENCIES
   childprocess
   cucumber
   debugger2
+  digest-murmurhash
   email
   httparty
   jeweler

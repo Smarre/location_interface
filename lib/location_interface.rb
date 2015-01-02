@@ -6,13 +6,14 @@ require "psych"
 require "httparty"
 require "logger"
 require "sqlite3"
+require "digest/murmurhash"
 
 require_relative "email"
 require_relative "address"
 require_relative "google"
 
+# class methods; Sinatra requests uses wrapper class so they can’t be accessed directly anyway
 class LocationInterface < Sinatra::Base
-
     def self.config
         @@config ||= Psych.load_file "config/config.yaml"
     end
@@ -26,6 +27,29 @@ class LocationInterface < Sinatra::Base
             config.reverse_url = "reverse.php"
         end
     end
+
+    private
+
+    def self.sqlite
+        @@sqlite ||= nil
+        return @@sqlite if not @@sqlite.nil?
+
+        @@sqlite = SQLite3::Database.new "requests.sqlite3"
+        @@sqlite.execute <<-SQL
+        create table if not exists loggy (
+            id integer primary key,
+            service varchar(50),
+            url varchar(100),
+            timestamp datetime default current_timestamp
+        );
+        SQL
+
+        @@sqlite
+    end
+end
+
+# and finally construct the Rack application
+class LocationInterface < Sinatra::Base
 
     configure do
         set :dump_errors, true
@@ -44,6 +68,7 @@ class LocationInterface < Sinatra::Base
     end
 
     before do
+        expires 15 * 60, :public, :must_revalidate
         @logger ||= Logger.new "log/loggy.log", "daily"
         @logger.info "#{request.request_method} #{request.path} #{request.query_string} #{request.POST}"
     end
@@ -59,6 +84,7 @@ class LocationInterface < Sinatra::Base
     #
     # Either address or postal code is required, not both.
     post "/geocode" do
+        etag Digest::MurmurHash64A.hexdigest("#{params["address"]}#{params["city"]}#{params["postal_code"]}"), new_resource: false, kind: :weak
         latitude, longitude = Address.address_to_coordinates params
         hash = { latitude: latitude, longitude: longitude }
         json hash
@@ -68,6 +94,7 @@ class LocationInterface < Sinatra::Base
     # - latitude
     # - longitude
     post "/reverse" do
+        etag Digest::MurmurHash64A.hexdigest("#{params["latitude"]}#{params["longitude"]}"), new_resource: false, kind: :weak
         LocationInterface.sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "nominatim reverse", params.inspect ]
         place = Nominatim.reverse(params["latitude"], params["longitude"]).address_details(true).fetch
         return [ 404, { "Content-Type" => "application/json" }, '"Nothing found for given coordinates"' ] if place.nil?
@@ -130,6 +157,8 @@ class LocationInterface < Sinatra::Base
             raise "Invalid input."
         end
 
+        etag Digest::MurmurHash64A.hexdigest("#{params["from"].to_s}#{params["to"].to_s}"), new_resource: false, kind: :weak
+
         from = {}
         to = {}
         unless params["from"]["latitude"].nil?
@@ -180,23 +209,6 @@ class LocationInterface < Sinatra::Base
         response = HTTParty.get uri
 
         JSON.parse response.body
-    end
-
-    def self.sqlite
-        @@sqlite ||= nil
-        return @@sqlite if not @@sqlite.nil?
-
-        @@sqlite = SQLite3::Database.new "requests.sqlite3"
-        @@sqlite.execute <<-SQL
-        create table if not exists loggy (
-            id integer primary key,
-            service varchar(50),
-            url varchar(100),
-            timestamp datetime default current_timestamp
-        );
-        SQL
-
-        @@sqlite
     end
 
     run! if app_file == $0
