@@ -64,13 +64,16 @@ class Address
         lat, lon = self.nominatim_query address_string
         return lat, lon unless lat.nil?
 
-        # let’s try OSM’s Nominatim service if it gives better results to us
-        lat, lon = self.official_nominatim_query address_with_postal_code_string
-        return lat, lon unless lat.nil?
+        contents = Psych.load_file "config/config.yaml"
+        unless contents["fallback_nominatim"].nil?
+            # let’s try OSM’s Nominatim service if it gives better results to us
+            lat, lon = self.official_nominatim_query address_with_postal_code_string
+            return lat, lon unless lat.nil?
 
-        # didn’t get results, let’s try without postal code then
-        lat, lon = self.official_nominatim_query address_string
-        return lat, lon unless lat.nil?
+            # didn’t get results, let’s try without postal code then
+            lat, lon = self.official_nominatim_query address_string
+            return lat, lon unless lat.nil?
+        end
 
         # If even that failed, let’s still try with Google
         google = Google.new
@@ -86,7 +89,7 @@ class Address
         contents = Psych.load_file "config/config.yaml"
         Nominatim.configure do |config|
             config.email = contents["nominatim"]["email"]
-            config.endpoint = "http://nominatim.openstreetmap.org"
+            config.endpoint = contents["fallback_nominatim"]
             config.search_url = "search.php"
             config.reverse_url = "reverse.php"
         end
@@ -103,9 +106,7 @@ class Address
     def self.nominatim_query address_string, featuretype = nil
         sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "nominatim address_to_coordinates", address_string ]
         places = Nominatim.search(address_string).limit(1).address_details(true).featuretype("city")
-        #if not featuretype.nil?
-            places.featuretype(featuretype)
-        #end
+        places.featuretype(featuretype)
         #@@logger.info address_string
         place = places.first
         return place.lat, place.lon if places.count > 0
