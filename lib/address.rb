@@ -45,38 +45,40 @@ class Address
         }
     end
 
-    def self.address_to_coordinates address
+    def self.address_to_coordinates input_address
         latitude = nil
         longitude = nil
 
+        address = input_address
+
         split_address = self.split_street(address["address"])
         street_address = "#{split_address[:street_name]} #{split_address[:street_number]}"
-        address_with_postal_code_string = "#{street_address}, #{address["postal_code"]} #{address["city"]}"
-        unless address["city"].empty?
-            address_string = "#{street_address}, #{address["city"]}"
-        else
-            address_string = "#{street_address}, #{address["postal_code"]}"
-        end
-        lat, lon = self.nominatim_query address_with_postal_code_string
+        address["address"] = street_address
+
+        lat, lon = self.nominatim_query address
         return lat, lon unless lat.nil?
 
         # didn’t get results, let’s try without postal code then
-        lat, lon = self.nominatim_query address_string
+        address["postal_code"] = nil
+        lat, lon = self.nominatim_query address
         return lat, lon unless lat.nil?
 
         contents = Psych.load_file "config/config.yaml"
         unless contents["fallback_nominatim"].nil?
-            # let’s try OSM’s Nominatim service if it gives better results to us
-            lat, lon = self.official_nominatim_query address_with_postal_code_string
+            # let’s try fallback Nominatim service if it gives better results to us
+            address["postal_code"] = input_address["postal_code"]
+            lat, lon = self.official_nominatim_query address
             return lat, lon unless lat.nil?
 
             # didn’t get results, let’s try without postal code then
-            lat, lon = self.official_nominatim_query address_string
+            address["postal_code"] = nil
+            lat, lon = self.official_nominatim_query address
             return lat, lon unless lat.nil?
         end
 
         # If even that failed, let’s still try with Google
         google = Google.new
+        address_string = "#{address["address"]}, #{address["city"]}"
         latitude, longitude = google.geocode address_string
         return latitude, longitude if not latitude.nil?
 
@@ -87,37 +89,39 @@ class Address
 
     private
 
-    def self.official_nominatim_query address_string, featuretype = nil
+    def self.official_nominatim_query address, featuretype = nil
         contents = Psych.load_file "config/config.yaml"
+        return nil if contents["fallback_nominatim"].nil?
         Nominatim.configure do |config|
             config.email = contents["nominatim"]["email"]
             config.endpoint = contents["fallback_nominatim"]
             config.search_url = "search.php"
             config.reverse_url = "reverse.php"
         end
-        lat, lon = self.nominatim_query address_string, featuretype
+        lat, lon = self.nominatim_query address, featuretype
         LocationInterface.configure_nominatim
 
         if not lat.nil?
-            Email.error_email "For some reason official Nominatim returned results but ours didn’t, for address #{address_string}"
+            Email.error_email "For some reason official Nominatim returned results but ours didn’t, for address #{address}"
             return lat, lon
         end
         nil
     end
 
-    def self.nominatim_query address_string, featuretype = nil
-        sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "nominatim address_to_coordinates", address_string ]
-        places = Nominatim.search(address_string).limit(1).address_details(true)
+    def self.nominatim_query address, featuretype = nil
+        sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "nominatim address_to_coordinates", address.to_s ]
+        places = Nominatim.search.street(address["address"]).city(address["city"]).postalcode(address["postal_code"])
+        places.limit(1).address_details(true)
         places.featuretype(featuretype)
-        #@@logger.info address_string
+        #@@logger.info address.inspect
         begin
             place = places.first
         rescue MultiJson::ParseError => e
-            # This means that we were not able to get proper answer from the service,
-            # so let’s send an error email.
-            Email.error_email "The nominatim thingy sent invalid response to us."
+            # This means that we were not able to get proper answer from the service, so let’s send an error email.
+            Email.error_email "The nominatim thingy sent invalid response to us: #{e}"
             return nil
         end
+
         return place.lat, place.lon if places.count > 0
         nil
     end

@@ -59,6 +59,10 @@ When(/^I geocode given addresses$/) do
         expect(response.code).to be(200)
         @responses << response
     end
+
+    @responses.map! do |response|
+        JSON.parse response.body
+    end
 end
 
 When(/^I reverse geocode given coordinates$/) do
@@ -69,6 +73,10 @@ When(/^I reverse geocode given coordinates$/) do
         #puts response.body #if response.code != 200
         expect(response.code).to eq(200)
         @responses << response
+    end
+
+    @responses.map! do |response|
+        JSON.parse response.body
     end
 end
 
@@ -82,9 +90,10 @@ Then(/^resulting coordinates should be:$/) do |table|
 
     data.each_with_index do |coordinates, index|
         coordinates = { "latitude" => coordinates["latitude"].to_f, "longitude" => coordinates["longitude"].to_f }
+        coordinates = { "latitude" => nil, "longitude" => nil } if coordinates["latitude"] == 0.0
         response = @responses[index]
 
-        expect(JSON.parse(response.body)).to eq(coordinates)
+        expect(response).to eq(coordinates)
     end
 end
 
@@ -95,7 +104,7 @@ Then(/^resulting address should be:$/) do |table|
         #address = { "address" => coordinates["latitude"].to_f, "longitude" => coordinates["longitude"].to_f }
         response = @responses[index]
 
-        expect(JSON.parse(response.body)).to eq(address)
+        expect(response).to eq(address)
     end
 end
 
