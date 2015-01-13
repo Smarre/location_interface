@@ -55,24 +55,33 @@ class Address
         street_address = "#{split_address[:street_name]} #{split_address[:street_number]}"
         address["address"] = street_address
 
-        lat, lon = self.nominatim_query address
+        lat, lon = self.nominatim_query address, "default"
         return lat, lon unless lat.nil?
 
         # didn’t get results, let’s try without postal code then
         address["postal_code"] = nil
-        lat, lon = self.nominatim_query address
+        lat, lon = self.nominatim_query address, "default without postal code"
         return lat, lon unless lat.nil?
+
+        # didn’t get results, let’s try with postal code and without city then
+        unless address["postal_code"].nil?
+            #@@logger.info input_address["postal_code"].inspect
+            address["postal_code"] = input_address["postal_code"]
+            address["city"] = nil
+            lat, lon = self.nominatim_query address, "default without city"
+            return lat, lon unless lat.nil?
+        end
 
         contents = Psych.load_file "config/config.yaml"
         unless contents["fallback_nominatim"].nil?
             # let’s try fallback Nominatim service if it gives better results to us
-            address["postal_code"] = input_address["postal_code"]
+            address["city"] = input_address["city"]
             lat, lon = self.official_nominatim_query address
             return lat, lon unless lat.nil?
 
             # didn’t get results, let’s try without postal code then
             address["postal_code"] = nil
-            lat, lon = self.official_nominatim_query address
+            lat, lon = self.official_nominatim_query address, "without postal code"
             return lat, lon unless lat.nil?
         end
 
@@ -89,7 +98,7 @@ class Address
 
     private
 
-    def self.official_nominatim_query address, featuretype = nil
+    def self.official_nominatim_query address, log_string = "", featuretype = nil
         contents = Psych.load_file "config/config.yaml"
         return nil if contents["fallback_nominatim"].nil?
         Nominatim.configure do |config|
@@ -98,7 +107,7 @@ class Address
             config.search_url = "search.php"
             config.reverse_url = "reverse.php"
         end
-        lat, lon = self.nominatim_query address, featuretype
+        lat, lon = self.nominatim_query address, "fallback #{log_string}", featuretype
         LocationInterface.configure_nominatim
 
         if not lat.nil?
@@ -108,8 +117,8 @@ class Address
         nil
     end
 
-    def self.nominatim_query address, featuretype = nil
-        sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "nominatim address_to_coordinates", address.to_s ]
+    def self.nominatim_query address, log_string = "", featuretype = nil
+        sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "nominatim #{log_string} address_to_coordinates", address.to_s ]
         places = Nominatim.search.street(address["address"]).city(address["city"]).postalcode(address["postal_code"])
         places.limit(1).address_details(true)
         places.featuretype(featuretype)

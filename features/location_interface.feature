@@ -8,8 +8,8 @@ Feature: Location
             | Lintulammenkatu 13      | Kerava | 04250       |
         When I geocode given addresses
         Then resulting coordinates should be:
-            | latitude   | longitude       |
-            | 60.39616065 | 25.1070625157963 |
+            | latitude    | longitude        |
+            | 60.3961232  | 25.1070479277008 |
 
     Scenario: convert coordinates to address
         Given there is following coordinates:
@@ -20,6 +20,7 @@ Feature: Location
             | address                 | city   | postal_code |
             | Lintulammenkatu 13      | Kerava | 04200       |
 
+    # This is generic feature that uses the actual API, see osrm.feature for specific routing features
     Scenario: there is an address we want a route for
         Given there in following address to route from:
             | address                 | city   | postal_code |
@@ -28,37 +29,7 @@ Feature: Location
             | address                 | city         | postal_code |
             | Linjatie 1              | Varpaisjärvi | 73200       |
         When I calculate route between these two addresses
-        Then distance between these addresses should be 420.594 kilometers
-
-    Scenario: customer lives in an apartment, so there is extraneous components in an address
-        Given there in following address to route from:
-            | address                 | city   | postal_code |
-            | Hakopolku 2             | Vantaa | 01360       |
-        And there in following address to route to:
-            | address                 | city   | postal_code |
-            | Hiekkaharjuntie 18 A 1  | Vantaa | 01300       |
-        When I calculate route between these two addresses
-        Then distance between these addresses should be 4.062 kilometers
-
-    Scenario: also hustbacka addresses needs to work
-        Given there in following address to route from:
-            | address                 | city   | postal_code |
-            | Husbackankuja 4 b 41    | Vantaa | 01610       |
-        And there in following address to route to:
-            | address                 | city   | postal_code |
-            | Liesitori 1             | Vantaa | 01600       |
-        When I calculate route between these two addresses
-        Then distance between these addresses should be 2.19 kilometers
-
-    Scenario: when querying coordinates for address in Vantaa, we don’t want coordinates for address in Helsinki
-        Given there in following address to route from:
-            | address                 | city   | postal_code |
-            | Majavatie 9 b 2         | Vantaa | 20540       |
-        And there in following address to route to:
-            | address                 | city   | postal_code |
-            | Maakotkantie 6          | Vantaa | 01450       |
-        When I calculate route between these two addresses
-        Then distance between these addresses should be 1.702 kilometers
+        Then distance between these addresses should be 420.786 kilometers
 
     Scenario: in case everything else fails, we want to try with Google’s print page routing
         Given there in following address to route from:
@@ -68,4 +39,4 @@ Feature: Location
             | address                 | city   | postal_code |
             | Maakotkantie 6          | Vantaa | 01450       |
         When I calculate route using Google print page between these two addresses
-        Then distance between these addresses should be 1.702 kilometers
+        Then distance between these addresses should be 1.8 kilometers

@@ -177,7 +177,7 @@ class LocationInterface < Sinatra::Base
             return if to["latitude"].nil? # return in case we didn’t get proper result
         end
 
-        body = distance_by_roads_with_osrm from, to
+        body = LocationInterface.distance_by_roads_with_osrm from, to
 
         distance = nil # distance in kilometers
         if body["status"] != 0
@@ -200,7 +200,7 @@ class LocationInterface < Sinatra::Base
 
     private
 
-    def distance_by_roads_with_osrm from, to
+    def self.distance_by_roads_with_osrm from, to
         config = LocationInterface.config
         uri = "#{config["osrm"]["service_url"]}/viaroute?loc=#{from["latitude"]}," +
                 "#{from["longitude"]}&loc=#{to["latitude"]},#{to["longitude"]}"

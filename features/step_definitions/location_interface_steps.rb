@@ -82,7 +82,7 @@ end
 
 Then(/^distance between these addresses should be (\d+.\d+) kilometers$/) do |km_amount|
     total_distance = @response.body
-    expect(km_amount).to eq(total_distance)
+    expect(total_distance).to eq(km_amount)
 end
 
 Then(/^resulting coordinates should be:$/) do |table|
