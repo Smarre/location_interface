@@ -22,6 +22,9 @@ class Google
             return nil
         end
 
+        # we can’t trust approximate matches, they can be anything
+        return nil if data["results"][0]["geometry"]["location_type"] == "APPROXIMATE"
+
         latitude = data["results"][0]["geometry"]["location"]["lat"]
         longitude = data["results"][0]["geometry"]["location"]["lng"]
 
