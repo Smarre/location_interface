@@ -86,6 +86,11 @@ class LocationInterface < Sinatra::Base
     post "/geocode" do
         etag Digest::MurmurHash64A.hexdigest("#{params["address"]}#{params["city"]}#{params["postal_code"]}"), new_resource: false, kind: :weak
         latitude, longitude = Address.address_to_coordinates params
+        if latitude.nil?
+            status 404
+            body "No coordinates found for given address"
+            return
+        end
         hash = { latitude: latitude, longitude: longitude }
         json hash
     end

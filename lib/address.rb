@@ -97,8 +97,6 @@ class Address
         latitude, longitude = google.geocode address_string
         return latitude, longitude if not latitude.nil?
 
-        status 404
-        body "No coordinates found for given address"
         nil
     end
 
