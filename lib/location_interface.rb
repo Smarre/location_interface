@@ -7,6 +7,7 @@ require "httparty"
 require "logger"
 require "sqlite3"
 require "digest/murmurhash"
+require "exception_notification"
 
 require_relative "email"
 require_relative "address"
@@ -57,16 +58,16 @@ class LocationInterface < Sinatra::Base
     use ExceptionNotification::Rack,
         email: {
             email_prefix: "[location_interface] ",
-            sender_address: %{"location_interface" <#{LocationInterface.config["error_email"]["sender_email"]}>},
-            exception_recipients: %w{LocationInterface.config["error_email"]["email"]},
+            sender_address: "\"location_interface\" <#{LocationInterface.config["error_email"]["sender_email"]}>",
+            exception_recipients: [ LocationInterface.config["error_email"]["email"] ],
             smtp_settings: { address: LocationInterface.config["error_email"]["server"], port: LocationInterface.config["error_email"]["port"] }
         }
 
     configure do
         set :dump_errors, true
         set :raise_errors, true
-        #set :show_exceptions, false
-        set :show_exceptions, true # for debugging
+        set :show_exceptions, false
+        #set :show_exceptions, true # for debugging
 
         LocationInterface.configure_nominatim
     end
