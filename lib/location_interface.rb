@@ -50,6 +50,17 @@ end
 
 # and finally construct the Rack application
 class LocationInterface < Sinatra::Base
+    use Rack::Config do |env|
+        env["action_dispatch.parameter_filter"] = [:password]
+    end
+
+    use ExceptionNotification::Rack,
+        email: {
+            email_prefix: "[location_interface] ",
+            sender_address: %{"location_interface" <#{LocationInterface.config["error_email"]["sender_email"]}>},
+            exception_recipients: %w{LocationInterface.config["error_email"]["email"]},
+            smtp_settings: { address: LocationInterface.config["error_email"]["server"], port: LocationInterface.config["error_email"]["port"] }
+        }
 
     configure do
         set :dump_errors, true
