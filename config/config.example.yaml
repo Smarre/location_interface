@@ -14,6 +14,12 @@ fallback_nominatim_api_key:
 # 0 means infinite
 #    expire_time_in_seconds: 360
 
+google:
+    geocode:
+        api_key:
+    distance_by_roads:
+        api_key:
+
 error_email:
     email: "nyan@desu.fi"
     sender_email: "example_address@foo.bar"

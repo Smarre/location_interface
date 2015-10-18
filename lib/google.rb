@@ -11,7 +11,9 @@ class Google
 
     # Returns latitude, longitude or nil in case of error
     def geocode address_string
-        url = "https://maps.googleapis.com/maps/api/geocode/json?address=#{URI.escape address_string}&components=country:FI&language=fi&region=fi"
+        return nil if LocationInterface.config["google"]["geocode"]["api_key"].nil? or LocationInterface.config["google"]["geocode"]["api_key"].empty?
+        api_key = LocationInterface.config["google"]["geocode"]["api_key"]
+        url = "https://maps.googleapis.com/maps/api/geocode/json?address=#{URI.escape address_string}&components=country:FI&language=fi&region=fi&key=#{api_key}"
 
         @sqlite ||= SQLite3::Database.new "requests.sqlite3"
         @sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "google geocode", url ]
@@ -48,8 +50,11 @@ class Google
         origin = "#{from["latitude"]} #{from["longitude"]}"
         destination = "#{to["latitude"]} #{to["longitude"]}"
 
+        return nil if LocationInterface.config["google"]["geocode"]["api_key"].nil? or LocationInterface.config["google"]["geocode"]["api_key"].empty?
+        api_key = LocationInterface.config["google"]["geocode"]["api_key"]
+
         url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=#{URI.escape origin}&destinations=#{URI.escape destination}" +
-                "&mode=driving&language=#{URI.escape result_language}&sensor=false&units=#{URI.escape units}"
+                "&mode=driving&language=#{URI.escape result_language}&sensor=false&units=#{URI.escape units}&key=#{api_key}"
 
         @sqlite ||= SQLite3::Database.new "requests.sqlite3"
         @sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "google distance_by_roads", url ]
