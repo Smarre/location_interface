@@ -34,9 +34,6 @@ class Google
     def distance_by_roads from, to
         # distance is distance in kilometers
         distance = search_from_api from, to
-        if distance.nil?
-            distance = distance_from_print_page from, to
-        end
 
         distance
     end
@@ -84,26 +81,4 @@ class Google
 
         distance / 1000.0
     end
-
-    # returns distance in kilometers or nil
-    def distance_from_print_page from, to
-        # TODO: add entry to config
-        #return nil # since it’s not allowed to use this page for distance calculation, it’s disabled
-
-        origin = "#{from["latitude"]} #{from["longitude"]}"
-        destination = "#{to["latitude"]} #{to["longitude"]}"
-
-        suffix = "f=d&source=s_d&saddr=#{URI.escape origin}&daddr=#{URI.escape destination}&hl=fi&geocode=&mra=ls&ie=UTF8&z=16&pw=2"
-
-        url = "https://maps.google.fi/maps?#{suffix}"
-
-        response = HTTParty.get url
-
-        doc = Nokogiri::HTML response.body
-        sums = doc.css(".ddr_sum")
-        return nil if sums.last.nil?
-        distance = sums.last.content
-        distance.split(" ")[0].sub ",", "."
-    end
-
 end
