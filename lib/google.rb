@@ -101,6 +101,7 @@ class Google
 
         doc = Nokogiri::HTML response.body
         sums = doc.css(".ddr_sum")
+        return nil if sums.last.nil?
         distance = sums.last.content
         distance.split(" ")[0].sub ",", "."
     end
