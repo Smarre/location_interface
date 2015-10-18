@@ -1,6 +1,6 @@
 GIT
   remote: git://github.com/Smarre/ruby-nominatim.git
-  revision: 98902046c772b7e1073bf82a29c53d59a83cc4d3
+  revision: 0d5473556e727a234b419bafd41575b932b0da6a
   specs:
     nominatim (0.0.5)
       faraday
