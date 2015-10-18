@@ -26,6 +26,7 @@ class LocationInterface < Sinatra::Base
             config.endpoint = contents["nominatim"]["service_url"]
             config.search_url = "search.php"
             config.reverse_url = "reverse.php"
+            config.api_key = contents["fallback_nominatim_api_key"] unless contents["nominatim"]["api_key"].nil? or !contents["nominatim"]["api_key"].empty?
         end
     end
 

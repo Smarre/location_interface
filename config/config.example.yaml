@@ -3,8 +3,12 @@ nominatim:
     email: "your@email.org"
     # endpoint, the place where Nominatim is running, for example http://open.mapquestapi.com/nominatim/v1
     service_url: http://open.mapquestapi.com/nominatim/v1
+    # MapQuest wants an API key in order to allow usage of the API, for more info: http://open.mapquestapi.com/nominatim/.
+    api_key:
 
 fallback_nominatim: http://nominatim.openstreetmap.org
+# MapQuest wants an API key in order to allow usage of the API, for more info: http://open.mapquestapi.com/nominatim/.
+fallback_nominatim_api_key:
 # memcached:
 #    server: http://localhost:11211
 # 0 means infinite
