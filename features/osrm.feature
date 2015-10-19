@@ -18,9 +18,9 @@ results by using OSRM to do the routing for us.
             | Maakotkantie 6          | Vantaa       | 01450       |
         When I calculate route between these two addresses using OSRM
         Then distance between these addresses should be following kilometers:
-            | 420.86 |
-            | 4.062  |
-            | 2.19   |
-            | 1.702  |
+            | 420.896 |
+            | 4.062   |
+            | 2.19    |
+            | 1.702   |
 
             # TODO: test with coordinates, instead of converting address

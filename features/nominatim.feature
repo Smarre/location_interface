@@ -17,7 +17,7 @@ Feature: Geocoding with Nominatim
             | 60.3961232  | 25.1070479277008 |
             |             |                  |
             | 60.2243508  | 24.9724909582648 |
-            |             |                  |
+            | 60.3506502  | 25.0925598       |
             | 60.20348285 | 25.0300153903916 |
 
     # This scenario won’t work, as it tests the fallback Nominatim, which we the tests can’t otherwise use.
