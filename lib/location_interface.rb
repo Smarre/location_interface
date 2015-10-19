@@ -82,7 +82,9 @@ class LocationInterface < Sinatra::Base
 
     before do
         expires 15 * 60, :public, :must_revalidate
-        @logger ||= Logger.new "log/loggy.log", "daily"
+        log_dir = "log"
+        File.mkdir log_dir unless Dir.exist? log_dir
+        @logger ||= Logger.new "#{log_dir}/loggy.log", "daily"
         @logger.info "#{request.request_method} #{request.path} #{request.query_string} #{request.POST}"
     end
 
