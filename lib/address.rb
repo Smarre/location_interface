@@ -6,7 +6,6 @@ require_relative "google"
 
 class Address
 
-    @@logger = Logger.new "log/loggy.log", "daily"
     @@sqlite = nil
 
     # Splits street address and returns hash of street address, street number and house number
@@ -71,7 +70,6 @@ class Address
 
         # didn’t get results, let’s try with postal code and without city then
         unless address["postal_code"].nil?
-            #@@logger.info input_address["postal_code"].inspect
             address["postal_code"] = input_address["postal_code"]
             address["city"] = nil
             lat, lon = self.nominatim_query address, "default without city"
@@ -127,7 +125,6 @@ class Address
         places = Nominatim.search.street(address["address"]).city(address["city"]).postalcode(address["postal_code"])
         places.limit(1).address_details(true)
         places.featuretype(featuretype)
-        #@@logger.info address.inspect
         begin
             place = places.first
         rescue MultiJson::ParseError => e

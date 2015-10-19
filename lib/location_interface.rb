@@ -4,7 +4,6 @@ require "sinatra/json"
 require "nominatim"
 require "psych"
 require "httparty"
-require "logger"
 require "sqlite3"
 require "digest/murmurhash"
 require "exception_notification"
@@ -82,10 +81,6 @@ class LocationInterface < Sinatra::Base
 
     before do
         expires 15 * 60, :public, :must_revalidate
-        log_dir = "log"
-        File.mkdir log_dir unless Dir.exist? log_dir
-        @logger ||= Logger.new "#{log_dir}/loggy.log", "daily"
-        @logger.info "#{request.request_method} #{request.path} #{request.query_string} #{request.POST}"
     end
 
     get "/" do
@@ -224,7 +219,7 @@ class LocationInterface < Sinatra::Base
         config = LocationInterface.config
         uri = "#{config["osrm"]["service_url"]}/viaroute?loc=#{from["latitude"]}," +
                 "#{from["longitude"]}&loc=#{to["latitude"]},#{to["longitude"]}"
-        #@logger.info uri
+
         LocationInterface.sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "osrm distance_by_roads", uri ]
         response = HTTParty.get uri
 
