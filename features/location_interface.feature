@@ -29,7 +29,7 @@ Feature: Location
             | address                 | city         | postal_code |
             | Linjatie 1              | Varpaisjärvi | 73200       |
         When I calculate route between these two addresses
-        Then distance between these addresses should be 420.786 kilometers
+        Then distance between these addresses should be 420.896 kilometers
 
     Scenario: in case everything else fails, we want to try with Google’s print page routing
         Given there in following address to route from:
