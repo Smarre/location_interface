@@ -27,23 +27,6 @@ When(/^I calculate route between these two addresses$/) do
     expect(@response.code).to be(200)
 end
 
-When(/^I calculate route using Google print page between these two addresses$/) do
-    # from coordinates
-    latitude, longitude = Address.address_to_coordinates @from_address
-    from = { "latitude" => latitude, "longitude" => longitude }
-
-    # to coordinates
-    latitude, longitude = Address.address_to_coordinates @to_address
-    to = { "latitude" => latitude, "longitude" => longitude }
-
-    google = Google.new
-    distance = google.instance_exec(from, to) do |from, to|
-        distance_from_print_page from, to
-    end
-    puts distance.inspect
-    @response = OpenStruct.new body: distance
-end
-
 When(/^I geocode given addresses$/) do
     @responses = []
     @addresses.each do |address_hash|
