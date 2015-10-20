@@ -3,7 +3,6 @@ require "sinatra"
 require "sinatra/json"
 require "nominatim"
 require "psych"
-require "httparty"
 require "sqlite3"
 require "digest/murmurhash"
 require "exception_notification"
@@ -11,6 +10,7 @@ require "exception_notification"
 require_relative "email"
 require_relative "address"
 require_relative "google"
+require_relative "osrm"
 
 # class methods; Sinatra requests uses wrapper class so they can’t be accessed directly anyway
 class LocationInterface < Sinatra::Base
@@ -275,11 +275,7 @@ class LocationInterface < Sinatra::Base
                 [ request_id, from["latitude"], from["longitude"], to["latitude"], to["longitude"], config["osrm"]["service_url"] ]
         @distance_id = LocationInterface.sqlite.last_insert_row_id
 
-        uri = "#{config["osrm"]["service_url"]}/viaroute?loc=#{from["latitude"]}," +
-                "#{from["longitude"]}&loc=#{to["latitude"]},#{to["longitude"]}"
-
-        response = HTTParty.get uri
-        JSON.parse response.body
+        OSRM.distance_by_roads from, to
     end
 
     run! if app_file == $0

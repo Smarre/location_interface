@@ -34,6 +34,17 @@ rescue Timeout::Error => e
     exit 1
 end
 
+# Truncate database after each test
+After do
+    file = "requests.sqlite3"
+    if File.exist? file
+        sqlite = SQLite3::Database.new "requests.sqlite3"
+        sqlite.execute "DELETE FROM requests"
+        sqlite.execute "DELETE FROM geocodes"
+        sqlite.execute "DELETE FROM distance_calculations"
+    end
+end
+
 at_exit do
     server.stop
 end

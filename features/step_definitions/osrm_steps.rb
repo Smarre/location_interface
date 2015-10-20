@@ -30,7 +30,7 @@ end
 When(/^I calculate route between these two addresses using OSRM$/) do
     @responses = []
     @from_addresses.each_with_index do |address, index|
-        body = LocationInterface.send(:distance_by_roads_with_osrm, address, @to_addresses[index])
+        body = OSRM.distance_by_roads address, @to_addresses[index]
         if body["route_summary"].nil?
             @responses << nil
             next

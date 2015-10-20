@@ -1,10 +1,6 @@
 
 require "fileutils"
 
-at_exit do
-    FileUtils.remove "requests.sqlite3"
-end
-
 Given(/^there is new address "([^"]*)", "([^"]*)", "([^"]*)" and "([^"]*)", "([^"]*)", "([^"]*)"$/) do |from_address, from_postal_code, from_city, to_address, to_postal_code, to_city|
     @first_address = { "address" => from_address, "postal_code" => from_postal_code, "city" => from_city }
     @second_address = { "address" => to_address, "postal_code" => to_postal_code, "city" => to_city }
