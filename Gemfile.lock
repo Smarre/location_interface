@@ -1,8 +1,8 @@
 GIT
   remote: git://github.com/Smarre/ruby-nominatim.git
-  revision: 0d5473556e727a234b419bafd41575b932b0da6a
+  revision: 5bd00caabc872013a22b78e68d21747cf0267d31
   specs:
-    nominatim (0.0.5)
+    ruby-nominatim (1.0.0)
       faraday
       multi_json
 
@@ -184,9 +184,9 @@ DEPENDENCIES
   httparty
   jeweler
   nokogiri
-  nominatim!
   rdoc
   rspec
+  ruby-nominatim!
   simplecov
   sinatra
   sinatra-contrib
