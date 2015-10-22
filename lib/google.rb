@@ -15,8 +15,6 @@ class Google
         api_key = LocationInterface.config["google"]["geocode"]["api_key"]
         url = "https://maps.googleapis.com/maps/api/geocode/json?address=#{URI.escape address_string}&components=country:FI&language=fi&region=fi&key=#{api_key}"
 
-        @sqlite ||= SQLite3::Database.new "requests.sqlite3"
-        @sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "google geocode", url ]
         response = HTTParty.get url
         data = JSON.parse response.body
         if not data["status"] == "OK"
@@ -56,8 +54,6 @@ class Google
         url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=#{URI.escape origin}&destinations=#{URI.escape destination}" +
                 "&mode=driving&language=#{URI.escape result_language}&sensor=false&units=#{URI.escape units}&key=#{api_key}"
 
-        @sqlite ||= SQLite3::Database.new "requests.sqlite3"
-        @sqlite.execute "INSERT INTO loggy (service, url) VALUES (?, ?)", [ "google distance_by_roads", url ]
         response = HTTParty.get url
         begin
             data = JSON.parse response.body
