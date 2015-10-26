@@ -28,7 +28,7 @@ class Email
         subject = "Subject: =?UTF-8?B?" + Base64.strict_encode64(subject) + "?="
 
         begin
-            Net::SMTP.start("localhost") do |smtp|
+            Net::SMTP.start(LocationInterface.config["error_email"]["server"], LocationInterface.config["error_email"]["port"]) do |smtp|
                 smtp.open_message_stream opts[:from], opts[:to] do |f|
 
                     f.puts "Content-type: text/plain; charset=UTF-8"
