@@ -89,7 +89,10 @@ class LocationInterface < Sinatra::Base
             email_prefix: "[location_interface] ",
             sender_address: "\"location_interface\" <#{LocationInterface.config["error_email"]["sender_email"]}>",
             exception_recipients: [ LocationInterface.config["error_email"]["email"] ],
-            smtp_settings: { address: LocationInterface.config["error_email"]["server"], port: LocationInterface.config["error_email"]["port"] }
+            smtp_settings: {
+                address: LocationInterface.config["error_email"]["server"],
+                port: LocationInterface.config["error_email"]["port"]
+            }
         }
 
     configure do
