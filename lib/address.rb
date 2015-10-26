@@ -169,7 +169,8 @@ class Address
         end
 
         return place.lat, place.lon if places.count > 0
-        Email.error_email "Nominatim response is invalid: #{places.inspect}"
+        # This can be used for debugging, but most of time geocode fail is correct, so the mail is useless
+        # Email.error_email "Nominatim response is invalid: #{places.inspect}"
         nil
     end
 
