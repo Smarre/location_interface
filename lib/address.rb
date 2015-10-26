@@ -167,6 +167,7 @@ class Address
         end
 
         return place.lat, place.lon if places.count > 0
+        Email.error_email "Nominatim response is invalid: #{places.inspect}"
         nil
     end
 
