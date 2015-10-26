@@ -142,7 +142,7 @@ class Address
             config.endpoint = contents["fallback_nominatim"]
             config.search_url = "search.php"
             config.reverse_url = "reverse.php"
-            unless contents["fallback_nominatim_api_key"].nil? || (not contents["fallback_nominatim_api_key"].empty?)
+            if (not contents["fallback_nominatim_api_key"].nil?) or (not contents["fallback_nominatim_api_key"].empty?)
                 config.api_key = contents["fallback_nominatim_api_key"]
             end
         end
