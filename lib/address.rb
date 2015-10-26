@@ -143,7 +143,7 @@ class Address
             config.search_url = "search.php"
             config.reverse_url = "reverse.php"
             if (not contents["fallback_nominatim_api_key"].nil?) or (not contents["fallback_nominatim_api_key"].empty?)
-                config.api_key = contents["fallback_nominatim_api_key"]
+                config.key = contents["fallback_nominatim_api_key"]
             end
         end
         lat, lon = self.nominatim_query address, "fallback #{log_string}", featuretype
