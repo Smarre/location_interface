@@ -54,6 +54,7 @@ class Email
 
     def self.error_email message
         config = LocationInterface.config
+        message = "#{message}\n\nStack:\n#{caller.join("\n")}"
         Email.send( {
                 from: config["error_email"]["sender_email"],
                 to: config["error_email"]["email"],
