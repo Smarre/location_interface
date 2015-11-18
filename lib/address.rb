@@ -70,8 +70,9 @@ class Address
 
         # didn’t get results, let’s try without postal code then
         address["postal_code"] = nil
-        geocode_id = LocationInterface.sqlite.execute "INSERT INTO geocodes (request_id, address, postal_code, city, service_provider) VALUES (?, ?, ?, ?, ?)",
+        LocationInterface.sqlite.execute "INSERT INTO geocodes (request_id, address, postal_code, city, service_provider) VALUES (?, ?, ?, ?, ?)",
                     [ request_id, address["address"], address["postal_code"], address["city"], LocationInterface.config["nominatim"]["service_url"] ]
+        geocode_id = LocationInterface.sqlite.last_insert_row_id
         lat, lon = self.nominatim_query address, "default without postal code"
         unless lat.nil?
             LocationInterface.sqlite.execute "UPDATE geocodes SET successful = 1 WHERE id = ?", geocode_id
