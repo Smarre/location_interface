@@ -79,7 +79,7 @@ class Address
         end
 
         # didn’t get results, let’s try with postal code and without city then
-        unless address["postal_code"].nil?
+        unless input_address["postal_code"].nil?
             address["postal_code"] = input_address["postal_code"]
             address["city"] = nil
             LocationInterface.sqlite.execute "INSERT INTO geocodes (request_id, address, postal_code, city, service_provider) VALUES (?, ?, ?, ?, ?)",
@@ -90,6 +90,8 @@ class Address
                 LocationInterface.sqlite.execute "UPDATE geocodes SET successful = 1 WHERE id = ?", geocode_id
                 return lat, lon
             end
+
+            address["city"] = input_address["city"]
         end
 
         contents = Psych.load_file "config/config.yaml"
