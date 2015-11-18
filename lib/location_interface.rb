@@ -239,7 +239,6 @@ class LocationInterface < Sinatra::Base
 
         distance = nil # distance in kilometers
         if body["status"] != 0
-            #
             # OSRM was not able to route us, so let’s try Google’s thingy instead
             LocationInterface.sqlite.execute "INSERT INTO distance_calculations (request_id, from_latitude, from_longitude, to_latitude, to_longitude, service_provider) VALUES (?, ?, ?, ?, ?, ?)",
                     [ request_id, from["latitude"], from["longitude"], to["latitude"], to["longitude"], "google" ]
@@ -257,10 +256,6 @@ class LocationInterface < Sinatra::Base
             # first request was ok
             distance = body["route_summary"]["total_distance"] / 1000.0
 
-        f = File.open("nya", "a")
-        f.write "nyaa "
-        f.write @distance_id.inspect
-        f.write "\n"
             LocationInterface.sqlite.execute "UPDATE distance_calculations SET successful = 1, distance = ? WHERE id = ?", distance, @distance_id
         end
 
