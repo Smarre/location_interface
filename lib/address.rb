@@ -56,7 +56,7 @@ class Address
                     [ request_id, input_address["address"], input_address["postal_code"], input_address["city"], LocationInterface.config["nominatim"]["service_url"] ]
         geocode_id = LocationInterface.sqlite.last_insert_row_id
 
-        address = input_address
+        address = input_address.dup
 
         split_address = self.split_street(address["address"])
         street_address = "#{split_address[:street_name]} #{split_address[:street_number]}"
@@ -71,19 +71,19 @@ class Address
         # didn’t get results, let’s try without postal code then
         address["postal_code"] = nil
         geocode_id = LocationInterface.sqlite.execute "INSERT INTO geocodes (request_id, address, postal_code, city, service_provider) VALUES (?, ?, ?, ?, ?)",
-                    [ request_id, input_address["address"], input_address["postal_code"], input_address["city"], LocationInterface.config["nominatim"]["service_url"] ]
+                    [ request_id, address["address"], address["postal_code"], address["city"], LocationInterface.config["nominatim"]["service_url"] ]
         lat, lon = self.nominatim_query address, "default without postal code"
         unless lat.nil?
             LocationInterface.sqlite.execute "UPDATE geocodes SET successful = 1 WHERE id = ?", geocode_id
             return lat, lon
         end
+        address["postal_code"] = input_address["postal_code"]
 
         # didn’t get results, let’s try with postal code and without city then
         unless input_address["postal_code"].nil?
-            address["postal_code"] = input_address["postal_code"]
             address["city"] = nil
             LocationInterface.sqlite.execute "INSERT INTO geocodes (request_id, address, postal_code, city, service_provider) VALUES (?, ?, ?, ?, ?)",
-                    [ request_id, input_address["address"], input_address["postal_code"], input_address["city"], LocationInterface.config["nominatim"]["service_url"] ]
+                    [ request_id, address["address"], address["postal_code"], address["city"], LocationInterface.config["nominatim"]["service_url"] ]
             geocode_id = LocationInterface.sqlite.last_insert_row_id
             lat, lon = self.nominatim_query address, "default without city"
             unless lat.nil?
@@ -97,9 +97,8 @@ class Address
         contents = Psych.load_file "config/config.yaml"
         unless contents["fallback_nominatim"].nil?
             # let’s try fallback Nominatim service if it gives better results to us
-            address["city"] = input_address["city"]
             LocationInterface.sqlite.execute "INSERT INTO geocodes (request_id, address, postal_code, city, service_provider) VALUES (?, ?, ?, ?, ?)",
-                    [ request_id, input_address["address"], input_address["postal_code"], input_address["city"], LocationInterface.config["fallback_nominatim"] ]
+                    [ request_id, address["address"], address["postal_code"], address["city"], LocationInterface.config["fallback_nominatim"] ]
             geocode_id = LocationInterface.sqlite.last_insert_row_id
             lat, lon = self.official_nominatim_query address
             unless lat.nil?
@@ -110,7 +109,7 @@ class Address
             # didn’t get results, let’s try without postal code then
             address["postal_code"] = nil
             LocationInterface.sqlite.execute "INSERT INTO geocodes (request_id, address, postal_code, city, service_provider) VALUES (?, ?, ?, ?, ?)",
-                    [ request_id, input_address["address"], input_address["postal_code"], input_address["city"], LocationInterface.config["fallback_nominatim"] ]
+                    [ request_id, address["address"], address["postal_code"], address["city"], LocationInterface.config["fallback_nominatim"] ]
             geocode_id = LocationInterface.sqlite.last_insert_row_id
             lat, lon = self.official_nominatim_query address, "without postal code"
             unless lat.nil?
@@ -122,7 +121,7 @@ class Address
         # If even that failed, let’s still try with Google
         google = Google.new
         LocationInterface.sqlite.execute "INSERT INTO geocodes (request_id, address, postal_code, city, service_provider) VALUES (?, ?, ?, ?, ?)",
-                    [ request_id, input_address["address"], input_address["postal_code"], input_address["city"], "google" ]
+                    [ request_id, address["address"], address["postal_code"], address["city"], "google" ]
         geocode_id = LocationInterface.sqlite.last_insert_row_id
         address_string = "#{address["address"]}, #{address["city"]}"
         latitude, longitude = google.geocode address_string
