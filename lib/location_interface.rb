@@ -41,6 +41,7 @@ class LocationInterface < Sinatra::Base
         create table if not exists requests (
             id integer primary key,
             type varchar(50),
+            input varchar(500),
             successful boolean,
             created_at datetime default current_timestamp
         );
@@ -127,7 +128,7 @@ class LocationInterface < Sinatra::Base
     # Either address or postal code is required, not both.
     post "/geocode" do
         etag Digest::MurmurHash64A.hexdigest("#{params["address"]}#{params["city"]}#{params["postal_code"]}"), new_resource: false, kind: :weak
-        LocationInterface.sqlite.execute "INSERT INTO requests (type) VALUES (?)", [ "geocode" ]
+        LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "geocode", params.inspect ]
         request_id = LocationInterface.sqlite.last_insert_row_id
         latitude, longitude = Address.address_to_coordinates params, request_id
         if latitude.nil?
@@ -146,7 +147,7 @@ class LocationInterface < Sinatra::Base
     # - longitude
     post "/reverse" do
         etag Digest::MurmurHash64A.hexdigest("#{params["latitude"]}#{params["longitude"]}"), new_resource: false, kind: :weak
-        LocationInterface.sqlite.execute "INSERT INTO requests (type) VALUES (?)", [ "reverse" ]
+        LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "reverse", params.inspect ]
         request_id = LocationInterface.sqlite.last_insert_row_id
         place = Nominatim.reverse(params["latitude"], params["longitude"]).address_details(true).fetch
         return [ 404, { "Content-Type" => "application/json" }, '"Nothing found for given coordinates"' ] if place.nil?
@@ -198,7 +199,7 @@ class LocationInterface < Sinatra::Base
     # - to["latitude"]
     # - to["longitude"]
     #
-    # For address, atleast postal code or city must be given, otherwise the result is not
+    # For address, at least postal code or city must be given, otherwise the result is not
     # accurate.
     #
     # If both address and coordinates are given, coordinates are preferred over address.
@@ -207,7 +208,7 @@ class LocationInterface < Sinatra::Base
     #
     # Returns distance in kilometers
     post "/distance_by_roads" do
-        LocationInterface.sqlite.execute "INSERT INTO requests (type) VALUES (?)", [ "distance_by_roads" ]
+        LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "distance_by_roads", params.inspect ]
         request_id = LocationInterface.sqlite.last_insert_row_id
 
         if params["from"].nil? or params["to"].nil?
