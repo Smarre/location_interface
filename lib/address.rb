@@ -62,6 +62,62 @@ class Address
         street_address = "#{split_address[:street_name]} #{split_address[:street_number]}"
         address["address"] = street_address
 
+        #nominatim_first input_address, address, geocode_id, request_id
+        google_first input_address, address, geocode_id, request_id
+    end
+
+    private
+
+    def self.google_first input_address, address, geocode_id, request_id
+        google = Google.new
+        LocationInterface.sqlite.execute "INSERT INTO geocodes (request_id, address, postal_code, city, service_provider) VALUES (?, ?, ?, ?, ?)",
+                    [ request_id, address["address"], address["postal_code"], address["city"], "google" ]
+        geocode_id = LocationInterface.sqlite.last_insert_row_id
+        address_string = "#{address["address"]}, #{address["city"]}"
+        latitude, longitude = google.geocode address_string
+        if not latitude.nil?
+            LocationInterface.sqlite.execute "UPDATE geocodes SET successful = 1 WHERE id = ?", geocode_id
+            return latitude, longitude
+        end
+
+        # didn’t get results, let’s try with Nominatim then
+        lat, lon = self.nominatim_query address, "default"
+        unless lat.nil?
+            LocationInterface.sqlite.execute "UPDATE geocodes SET successful = 1 WHERE id = ?", geocode_id
+            return lat, lon
+        end
+
+        # didn’t get results, let’s try without postal code then
+        address["postal_code"] = nil
+        LocationInterface.sqlite.execute "INSERT INTO geocodes (request_id, address, postal_code, city, service_provider) VALUES (?, ?, ?, ?, ?)",
+                    [ request_id, address["address"], address["postal_code"], address["city"], LocationInterface.config["nominatim"]["service_url"] ]
+        geocode_id = LocationInterface.sqlite.last_insert_row_id
+        lat, lon = self.nominatim_query address, "default without postal code"
+        unless lat.nil?
+            LocationInterface.sqlite.execute "UPDATE geocodes SET successful = 1 WHERE id = ?", geocode_id
+            return lat, lon
+        end
+        address["postal_code"] = input_address["postal_code"]
+
+        # didn’t get results, let’s try with postal code and without city then
+        unless input_address["postal_code"].nil?
+            address["city"] = nil
+            LocationInterface.sqlite.execute "INSERT INTO geocodes (request_id, address, postal_code, city, service_provider) VALUES (?, ?, ?, ?, ?)",
+                    [ request_id, address["address"], address["postal_code"], address["city"], LocationInterface.config["nominatim"]["service_url"] ]
+            geocode_id = LocationInterface.sqlite.last_insert_row_id
+            lat, lon = self.nominatim_query address, "default without city"
+            unless lat.nil?
+                LocationInterface.sqlite.execute "UPDATE geocodes SET successful = 1 WHERE id = ?", geocode_id
+                return lat, lon
+            end
+
+            address["city"] = input_address["city"]
+        end
+
+        nil
+    end
+
+    def self.nominatim_first input_address, address, geocode_id, request_id
         lat, lon = self.nominatim_query address, "default"
         unless lat.nil?
             LocationInterface.sqlite.execute "UPDATE geocodes SET successful = 1 WHERE id = ?", geocode_id
@@ -134,8 +190,6 @@ class Address
         nil
     end
 
-    private
-
     def self.official_nominatim_query address, log_string = "", featuretype = nil
         contents = Psych.load_file "config/config.yaml"
         return nil if contents["fallback_nominatim"].nil?
@@ -159,7 +213,7 @@ class Address
     end
 
     def self.nominatim_query address, log_string = "", featuretype = nil
-        address = address.dup!
+        address = address.dup
         places = Nominatim.search.street(address["address"]).city(address["city"]).postalcode(address["postal_code"])
         places.limit(1).address_details(true)
         places.featuretype(featuretype)

@@ -97,20 +97,24 @@ class LocationInterface < Sinatra::Base
         }
 
     configure do
-        set :dump_errors, true
-        set :raise_errors, true
+        #set :dump_errors, true
+        #set :raise_errors, true
         set :show_exceptions, false
+        #disable :show_exceptions
         #set :show_exceptions, true # for debugging
+
+        #set :dump_errors, false
+        #set :raise_errors, false
 
         LocationInterface.configure_nominatim
     end
 
     helpers Sinatra::JSON
 
-    error Exception do
-        puts "argh"
-        exit 1
-    end
+    #error Exception do
+    #    puts "argh"
+    #    exit 1
+    #end
 
     before do
         expires 15 * 60, :public, :must_revalidate
