@@ -159,6 +159,7 @@ class Address
     end
 
     def self.nominatim_query address, log_string = "", featuretype = nil
+        address = address.dup!
         places = Nominatim.search.street(address["address"]).city(address["city"]).postalcode(address["postal_code"])
         places.limit(1).address_details(true)
         places.featuretype(featuretype)
