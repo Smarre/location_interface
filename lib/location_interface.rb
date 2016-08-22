@@ -235,6 +235,43 @@ class LocationInterface < Sinatra::Base
             return if to["latitude"].nil? # return in case we didn’t get proper result
         end
 
+        #json distance_by_roads_osrm_first from, to, request_id
+        json distance_by_roads_google_first from, to, request_id
+    end
+
+    private
+
+    def distance_by_roads_google_first from, to, request_id
+        LocationInterface.sqlite.execute "INSERT INTO distance_calculations (request_id, from_latitude, from_longitude, to_latitude, to_longitude, service_provider) VALUES (?, ?, ?, ?, ?, ?)",
+                [ request_id, from["latitude"], from["longitude"], to["latitude"], to["longitude"], "google" ]
+        distance_id = LocationInterface.sqlite.last_insert_row_id
+        google = Google.new
+        distance = google.distance_by_roads to, from
+        if not distance.nil?
+            LocationInterface.sqlite.execute "UPDATE distance_calculations SET successful = 1, distance = ? WHERE id = ?", distance, distance_id
+            return distance
+        end
+
+        body = distance_by_roads_with_osrm from, to, request_id
+
+        distance = nil # distance in kilometers
+        if body["status"] != 200
+            Email.error_email "Neither Google or OSRM was able to route us: #{response.body}"
+            status 404
+            body "There was no route found between the given addresses"
+            return
+        else
+            distance = body["route_summary"]["total_distance"] / 1000.0
+
+            LocationInterface.sqlite.execute "UPDATE distance_calculations SET successful = 1, distance = ? WHERE id = ?", distance, @distance_id
+        end
+
+        result = LocationInterface.sqlite.execute "UPDATE requests SET successful = 1 WHERE id = ?", request_id
+
+        distance
+    end
+
+    def distance_by_roads_osrm_first from, to, request_id
         body = distance_by_roads_with_osrm from, to, request_id
 
         distance = nil # distance in kilometers
@@ -259,13 +296,10 @@ class LocationInterface < Sinatra::Base
             LocationInterface.sqlite.execute "UPDATE distance_calculations SET successful = 1, distance = ? WHERE id = ?", distance, @distance_id
         end
 
-
         result = LocationInterface.sqlite.execute "UPDATE requests SET successful = 1 WHERE id = ?", request_id
 
-        json distance
+        distance
     end
-
-    private
 
     def distance_by_roads_with_osrm from, to, request_id
 
