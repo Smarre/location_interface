@@ -62,8 +62,8 @@ class Address
         street_address = "#{split_address[:street_name]} #{split_address[:street_number]}"
         address["address"] = street_address
 
-        #nominatim_first input_address, address, geocode_id, request_id
-        google_first input_address, address, geocode_id, request_id
+        nominatim_first input_address, address, geocode_id, request_id
+        #google_first input_address, address, geocode_id, request_id
     end
 
     private

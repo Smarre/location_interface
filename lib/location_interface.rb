@@ -239,8 +239,8 @@ class LocationInterface < Sinatra::Base
             return if to["latitude"].nil? # return in case we didn’t get proper result
         end
 
-        #json distance_by_roads_osrm_first from, to, request_id
-        json distance_by_roads_google_first from, to, request_id
+        json distance_by_roads_osrm_first from, to, request_id
+        #json distance_by_roads_google_first from, to, request_id
     end
 
     private
