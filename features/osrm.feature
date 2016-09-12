@@ -12,13 +12,13 @@ results by using OSRM to do the routing for us.
             | Majavatie 9             | Vantaa | 20540       |
         And there in following addresses to route to:
             | address                 | city         | postal_code |
-            | Linjatie 1              | Lapinlahti   | 73200       |
+            | Linjatie 1              | Lapinlahti   | 73201       |
             | Hiekkaharjuntie 18      | Vantaa       | 01350       |
             | Liesitori 1             | Vantaa       | 01600       |
             | Maakotkantie 6          | Vantaa       | 01450       |
         When I calculate route between these two addresses using OSRM
         Then distance between these addresses should be following kilometers:
-            | 420.896 |
+            | 420.899 |
             | 4.062   |
             | 2.19    |
             | 1.702   |

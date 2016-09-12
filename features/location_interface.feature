@@ -29,4 +29,4 @@ Feature: Location
             | address                 | city         | postal_code |
             | Linjatie 1              | Varpaisjärvi | 73200       |
         When I calculate route between these two addresses
-        Then distance between these addresses should be 420.896 kilometers
+        Then distance between these addresses should be 420.899 kilometers
