@@ -132,8 +132,9 @@ class LocationInterface < Sinatra::Base
     # Either address or postal code is required, not both.
     post "/geocode" do
         etag Digest::MurmurHash64A.hexdigest("#{params["address"]}#{params["city"]}#{params["postal_code"]}"), new_resource: false, kind: :weak
-        LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "geocode", params.to_s ]
-        request_id = LocationInterface.sqlite.last_insert_row_id
+        #LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "geocode", params.to_s ]
+        #request_id = LocationInterface.sqlite.last_insert_row_id
+        request_id = 0
         latitude, longitude = Address.address_to_coordinates params, request_id
         if latitude.nil?
             status 404
@@ -142,7 +143,7 @@ class LocationInterface < Sinatra::Base
         end
         hash = { latitude: latitude, longitude: longitude }
 
-        LocationInterface.sqlite.execute "UPDATE requests SET successful = 1 WHERE id = ?", request_id
+        #LocationInterface.sqlite.execute "UPDATE requests SET successful = 1 WHERE id = ?", request_id
         json hash
     end
 
@@ -161,35 +162,46 @@ class LocationInterface < Sinatra::Base
         end
 
         results = {}
+        threads = []
 
         params["addresses"].each do |key, address|
 
-            if address.nil?
-                status 400
-                body "Please give somewhat more proper input"
-                return
+            thread = Thread.new do
+
+                if address.nil?
+                    status 400
+                    body "Please give somewhat more proper input"
+                    return
+                end
+
+                if address["address"].nil?
+                    status 400
+                    body "Please give more proper input"
+                    return
+                end
+
+                #LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "multi_geocode", params.to_s ]
+                #request_id = LocationInterface.sqlite.last_insert_row_id
+                request_id = 0
+                latitude, longitude = Address.address_to_coordinates address, request_id
+                if latitude.nil?
+                    status 404
+                    body "No coordinates found for given address"
+                    return
+                end
+                hash = { latitude: latitude, longitude: longitude }
+                results[key] = hash
+
+                #LocationInterface.sqlite.execute "UPDATE requests SET successful = 1 WHERE id = ?", request_id
+
             end
 
-            if address["address"].nil?
-                status 400
-                body "Please give more proper input"
-                return
-            end
-
-            LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "multi_geocode", params.to_s ]
-            request_id = LocationInterface.sqlite.last_insert_row_id
-            latitude, longitude = Address.address_to_coordinates address, request_id
-            if latitude.nil?
-                status 404
-                body "No coordinates found for given address"
-                return
-            end
-            hash = { latitude: latitude, longitude: longitude }
-            results[key] = hash
-
-            LocationInterface.sqlite.execute "UPDATE requests SET successful = 1 WHERE id = ?", request_id
+            threads << thread
 
         end
+
+        threads.each { |thr| thr.join }
+
         json results
     end
 
@@ -259,8 +271,9 @@ class LocationInterface < Sinatra::Base
     #
     # Returns distance in kilometers
     post "/distance_by_roads" do
-        LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "distance_by_roads", params.to_s ]
-        request_id = LocationInterface.sqlite.last_insert_row_id
+        #LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "distance_by_roads", params.to_s ]
+        #request_id = LocationInterface.sqlite.last_insert_row_id
+        request_id = 0
 
         if params["from"].nil? or params["to"].nil?
             raise "Invalid input."
@@ -311,8 +324,9 @@ class LocationInterface < Sinatra::Base
         results = {}
 
         params["addresses"].each do |key, address|
-            LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "distance_by_roads", params.to_s ]
-            request_id = LocationInterface.sqlite.last_insert_row_id
+            #LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "distance_by_roads", params.to_s ]
+            #request_id = LocationInterface.sqlite.last_insert_row_id
+            request_id = 0
 
             if address.nil? or address["from"].nil? or address["to"].nil?
                 raise "Invalid input."
@@ -381,9 +395,9 @@ class LocationInterface < Sinatra::Base
         distance = nil # distance in kilometers
         if body["status"] != 200
             # OSRM was not able to route us, so let’s try Google’s thingy instead
-            LocationInterface.sqlite.execute "INSERT INTO distance_calculations (request_id, from_latitude, from_longitude, to_latitude, to_longitude, service_provider) VALUES (?, ?, ?, ?, ?, ?)",
-                    [ request_id, from["latitude"], from["longitude"], to["latitude"], to["longitude"], "google" ]
-            distance_id = LocationInterface.sqlite.last_insert_row_id
+            #LocationInterface.sqlite.execute "INSERT INTO distance_calculations (request_id, from_latitude, from_longitude, to_latitude, to_longitude, service_provider) VALUES (?, ?, ?, ?, ?, ?)",
+            #        [ request_id, from["latitude"], from["longitude"], to["latitude"], to["longitude"], "google" ]
+            #distance_id = LocationInterface.sqlite.last_insert_row_id
             google = Google.new
             distance = google.distance_by_roads to, from
             if distance.nil?
@@ -392,25 +406,25 @@ class LocationInterface < Sinatra::Base
                 body "There was no route found between the given addresses"
                 return
             end
-            LocationInterface.sqlite.execute "UPDATE distance_calculations SET successful = 1, distance = ? WHERE id = ?", distance, distance_id
+            #LocationInterface.sqlite.execute "UPDATE distance_calculations SET successful = 1, distance = ? WHERE id = ?", distance, distance_id
         else
             # first request was ok
             distance = body["route_summary"]["total_distance"] / 1000.0
 
-            LocationInterface.sqlite.execute "UPDATE distance_calculations SET successful = 1, distance = ? WHERE id = ?", distance, @distance_id
+            #LocationInterface.sqlite.execute "UPDATE distance_calculations SET successful = 1, distance = ? WHERE id = ?", distance, @distance_id
         end
 
-        result = LocationInterface.sqlite.execute "UPDATE requests SET successful = 1 WHERE id = ?", request_id
+        #result = LocationInterface.sqlite.execute "UPDATE requests SET successful = 1 WHERE id = ?", request_id
 
         distance
     end
 
     def distance_by_roads_with_osrm from, to, request_id
 
-        config = LocationInterface.config
-        LocationInterface.sqlite.execute "INSERT INTO distance_calculations (request_id, from_latitude, from_longitude, to_latitude, to_longitude, service_provider) VALUES (?, ?, ?, ?, ?, ?)",
-                [ request_id, from["latitude"], from["longitude"], to["latitude"], to["longitude"], config["osrm"]["service_url"] ]
-        @distance_id = LocationInterface.sqlite.last_insert_row_id
+        #config = LocationInterface.config
+        #LocationInterface.sqlite.execute "INSERT INTO distance_calculations (request_id, from_latitude, from_longitude, to_latitude, to_longitude, service_provider) VALUES (?, ?, ?, ?, ?, ?)",
+        #        [ request_id, from["latitude"], from["longitude"], to["latitude"], to["longitude"], config["osrm"]["service_url"] ]
+        #@distance_id = LocationInterface.sqlite.last_insert_row_id
 
         OSRM.distance_by_roads from, to
     end
