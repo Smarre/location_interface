@@ -30,7 +30,6 @@ end
 When(/^I geocode given addresses$/) do
     @responses = []
     @addresses.each do |address_hash|
-        address_string = "#{address_hash["address"]}, #{address_hash["postal_code"]} #{address_hash["city"]}"
         options = { body: {
                            address: address_hash["address"],
                            postal_code: address_hash["postal_code"],

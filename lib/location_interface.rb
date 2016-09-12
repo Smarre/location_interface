@@ -132,7 +132,7 @@ class LocationInterface < Sinatra::Base
     # Either address or postal code is required, not both.
     post "/geocode" do
         etag Digest::MurmurHash64A.hexdigest("#{params["address"]}#{params["city"]}#{params["postal_code"]}"), new_resource: false, kind: :weak
-        LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "geocode", params.inspect ]
+        LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "geocode", params.to_s ]
         request_id = LocationInterface.sqlite.last_insert_row_id
         latitude, longitude = Address.address_to_coordinates params, request_id
         if latitude.nil?
@@ -146,12 +146,59 @@ class LocationInterface < Sinatra::Base
         json hash
     end
 
+    # Takes hash of addresses as input:
+    #
+    # { "addresses" => { address_id => { "address" => .., "city" => .. }, .. } }
+    #
+    # Returns JSON hash of address_id => latitude/longitude pairs
+    post "/multi_geocode" do
+        etag Digest::MurmurHash64A.hexdigest("#{params["addresses"].to_s}"), new_resource: false, kind: :weak
+
+        unless params["addresses"].respond_to? :each
+            status 400
+            body "Please give proper input"
+            return
+        end
+
+        results = {}
+
+        params["addresses"].each do |key, address|
+
+            if address.nil?
+                status 400
+                body "Please give somewhat more proper input"
+                return
+            end
+
+            if address["address"].nil?
+                status 400
+                body "Please give more proper input"
+                return
+            end
+
+            LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "multi_geocode", params.to_s ]
+            request_id = LocationInterface.sqlite.last_insert_row_id
+            latitude, longitude = Address.address_to_coordinates address, request_id
+            if latitude.nil?
+                status 404
+                body "No coordinates found for given address"
+                return
+            end
+            hash = { latitude: latitude, longitude: longitude }
+            results[key] = hash
+
+            LocationInterface.sqlite.execute "UPDATE requests SET successful = 1 WHERE id = ?", request_id
+
+        end
+        json results
+    end
+
     # Arguments:
     # - latitude
     # - longitude
     post "/reverse" do
         etag Digest::MurmurHash64A.hexdigest("#{params["latitude"]}#{params["longitude"]}"), new_resource: false, kind: :weak
-        LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "reverse", params.inspect ]
+        LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "reverse", params.to_s ]
         request_id = LocationInterface.sqlite.last_insert_row_id
         place = Nominatim.reverse(params["latitude"], params["longitude"]).address_details(true).fetch
         return [ 404, { "Content-Type" => "application/json" }, '"Nothing found for given coordinates"' ] if place.nil?
@@ -212,7 +259,7 @@ class LocationInterface < Sinatra::Base
     #
     # Returns distance in kilometers
     post "/distance_by_roads" do
-        LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "distance_by_roads", params.inspect ]
+        LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "distance_by_roads", params.to_s ]
         request_id = LocationInterface.sqlite.last_insert_row_id
 
         if params["from"].nil? or params["to"].nil?
@@ -241,6 +288,59 @@ class LocationInterface < Sinatra::Base
 
         json distance_by_roads_osrm_first from, to, request_id
         #json distance_by_roads_google_first from, to, request_id
+    end
+
+    # TODO: there is /table service on OSRM which may do something we want to do about this. Should be investigated whether it would give good speedup.
+    #
+    # Takes addresses in in following format:
+    #
+    # { "addresses" => { address_id => { "from" => address_array, "to" => address_array }, .. } }
+    #
+    # Returns 404 if there is a problems with geocoding the input address.
+    post "/multi_distance_by_roads" do
+        etag Digest::MurmurHash64A.hexdigest("#{params["addresses"].to_s}"), new_resource: false, kind: :weak
+
+        puts params.to_s
+
+        unless params["addresses"].respond_to? :each
+            status 400
+            body "Please give proper input"
+            return
+        end
+
+        results = {}
+
+        params["addresses"].each do |key, address|
+            LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "distance_by_roads", params.to_s ]
+            request_id = LocationInterface.sqlite.last_insert_row_id
+
+            if address.nil? or address["from"].nil? or address["to"].nil?
+                raise "Invalid input."
+            end
+
+            from = {}
+            to = {}
+            unless address["from"]["latitude"].nil?
+                from["latitude"] = address["from"]["latitude"]
+                from["longitude"] = address["from"]["longitude"]
+            else
+                from["latitude"], from["longitude"] = Address.address_to_coordinates address["from"], request_id
+                return if from["latitude"].nil? # return in case we didn’t get proper result
+            end
+
+            unless address["to"]["latitude"].nil?
+                to["latitude"] = address["to"]["latitude"]
+                to["longitude"] = address["to"]["longitude"]
+            else
+                to["latitude"], to["longitude"] = Address.address_to_coordinates address["to"], request_id
+                return if to["latitude"].nil? # return in case we didn’t get proper result
+            end
+
+            results[key] = distance_by_roads_osrm_first from, to, request_id
+            #results[key] = distance_by_roads_google_first from, to, request_id
+        end
+
+        json results
     end
 
     private
