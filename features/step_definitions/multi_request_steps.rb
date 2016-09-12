@@ -31,5 +31,5 @@ When(/^I calculate route between these two addresses using multi distance by roa
     #puts response.body if response.code != 200
     expect(response.code).to be(200)
     responses = JSON.parse response.body
-    @responses = (@responses.sort_by { |key, value| key }).to_h.values
+    @responses = (responses.sort_by { |key, value| key }).to_h.values
 end

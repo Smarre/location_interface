@@ -322,37 +322,45 @@ class LocationInterface < Sinatra::Base
         end
 
         results = {}
+        threads = []
 
         params["addresses"].each do |key, address|
-            #LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "distance_by_roads", params.to_s ]
-            #request_id = LocationInterface.sqlite.last_insert_row_id
-            request_id = 0
 
-            if address.nil? or address["from"].nil? or address["to"].nil?
-                raise "Invalid input."
+            thread = Thread.new do
+                #LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "distance_by_roads", params.to_s ]
+                #request_id = LocationInterface.sqlite.last_insert_row_id
+                request_id = 0
+
+                if address.nil? or address["from"].nil? or address["to"].nil?
+                    raise "Invalid input."
+                end
+
+                from = {}
+                to = {}
+                unless address["from"]["latitude"].nil?
+                    from["latitude"] = address["from"]["latitude"]
+                    from["longitude"] = address["from"]["longitude"]
+                else
+                    from["latitude"], from["longitude"] = Address.address_to_coordinates address["from"], request_id
+                    return if from["latitude"].nil? # return in case we didn’t get proper result
+                end
+
+                unless address["to"]["latitude"].nil?
+                    to["latitude"] = address["to"]["latitude"]
+                    to["longitude"] = address["to"]["longitude"]
+                else
+                    to["latitude"], to["longitude"] = Address.address_to_coordinates address["to"], request_id
+                    return if to["latitude"].nil? # return in case we didn’t get proper result
+                end
+
+                results[key] = distance_by_roads_osrm_first from, to, request_id
+                #results[key] = distance_by_roads_google_first from, to, request_id
             end
 
-            from = {}
-            to = {}
-            unless address["from"]["latitude"].nil?
-                from["latitude"] = address["from"]["latitude"]
-                from["longitude"] = address["from"]["longitude"]
-            else
-                from["latitude"], from["longitude"] = Address.address_to_coordinates address["from"], request_id
-                return if from["latitude"].nil? # return in case we didn’t get proper result
-            end
-
-            unless address["to"]["latitude"].nil?
-                to["latitude"] = address["to"]["latitude"]
-                to["longitude"] = address["to"]["longitude"]
-            else
-                to["latitude"], to["longitude"] = Address.address_to_coordinates address["to"], request_id
-                return if to["latitude"].nil? # return in case we didn’t get proper result
-            end
-
-            results[key] = distance_by_roads_osrm_first from, to, request_id
-            #results[key] = distance_by_roads_google_first from, to, request_id
+            threads << thread
         end
+
+        threads.each { |thr| thr.join }
 
         json results
     end
