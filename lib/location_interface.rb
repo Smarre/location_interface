@@ -217,7 +217,7 @@ class LocationInterface < Sinatra::Base
         address = place.address
         return [ 404, { "Content-Type" => "application/json" }, '"Nothing found for given coordinates"' ] if address.nil?
 
-        city = address.city || address.town
+        city = address.city || address.town || address.village
 
         hash = { "city" => city, "postal_code" => address.postcode }
 
