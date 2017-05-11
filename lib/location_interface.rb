@@ -218,7 +218,10 @@ class LocationInterface < Sinatra::Base
 
         if not address.road
             config = LocationInterface.config
-            Airbrake.notify(Notice.new("For some reason Nominatim result had road instead of street in the response."), place)
+            Airbrake.notify(Notice.new("For some reason Nominatim result had road instead of street in the response.")) do |notice|
+                notice[:params][:place] = place.inspect
+                notice[:context][:severity] = "info"
+            end
             #raise "Road not set in response. Response: #{place.inspect}"
         end
 
@@ -372,7 +375,10 @@ class LocationInterface < Sinatra::Base
 
         distance = nil # distance in kilometers
         if body["status"] != 200
-            Airbrake.notify(Notice.new("Neither Google or OSRM was able to route us"), response.body)
+            Airbrake.notify(Notice.new("Neither Google or OSRM was able to route us")) do |notice|
+                notice[:params][:response] = response.body
+                notice[:context][:severity] = "error"
+            end
             status 404
             body "There was no route found between the given addresses"
             return
@@ -399,7 +405,10 @@ class LocationInterface < Sinatra::Base
             google = Google.new
             distance = google.distance_by_roads to, from
             if distance.nil?
-                Airbrake.notify(Notice.new("Google wasn’t able to route us"), response.body)
+                Airbrake.notify(Notice.new("Google wasn’t able to route us")) do |notice|
+                    notice[:params][:response] = response.body
+                    notice[:context][:severity] = "error"
+                end
                 status 404
                 body "There was no route found between the given addresses"
                 return
