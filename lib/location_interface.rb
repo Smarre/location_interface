@@ -5,15 +5,21 @@ require "nominatim"
 require "psych"
 require "sqlite3"
 require "digest/murmurhash"
-require "exception_notification"
+
+require_relative "../config/initializers/errbit.rb"
 
 require_relative "email"
 require_relative "address"
 require_relative "google"
 require_relative "osrm"
 
+class Notice < RuntimeError
+end
+
 # class methods; Sinatra requests uses wrapper class so they can’t be accessed directly anyway
 class LocationInterface < Sinatra::Base
+
+    use Airbrake::Rack::Middleware
 
     def self.config
         @@config ||= Psych.load_file "config/config.yaml"
@@ -84,17 +90,6 @@ class LocationInterface < Sinatra::Base
     use Rack::Config do |env|
         env["action_dispatch.parameter_filter"] = [:password]
     end
-
-    use ExceptionNotification::Rack,
-        email: {
-            email_prefix: "[location_interface] ",
-            sender_address: "\"location_interface\" <#{LocationInterface.config["error_email"]["sender_email"]}>",
-            exception_recipients: [ LocationInterface.config["error_email"]["email"] ],
-            smtp_settings: {
-                address: LocationInterface.config["error_email"]["server"],
-                port: LocationInterface.config["error_email"]["port"]
-            }
-        }
 
     configure do
         #set :dump_errors, true
@@ -223,12 +218,7 @@ class LocationInterface < Sinatra::Base
 
         if not address.road
             config = LocationInterface.config
-            Email.send( {
-                from: config["error_email"]["sender_email"],
-                to: config["error_email"]["email"],
-                subject: "Road missing in Nominatim result",
-                message: "For some reason Nominatim result had road instead of street in the response. Debug this: #{place.inspect}"
-            })
+            Airbrake.notify(Notice.new("For some reason Nominatim result had road instead of street in the response."), place)
             #raise "Road not set in response. Response: #{place.inspect}"
         end
 
@@ -382,7 +372,7 @@ class LocationInterface < Sinatra::Base
 
         distance = nil # distance in kilometers
         if body["status"] != 200
-            Email.error_email "Neither Google or OSRM was able to route us: #{response.body}"
+            Airbrake.notify(Notice.new("Neither Google or OSRM was able to route us"), response.body)
             status 404
             body "There was no route found between the given addresses"
             return
@@ -409,7 +399,7 @@ class LocationInterface < Sinatra::Base
             google = Google.new
             distance = google.distance_by_roads to, from
             if distance.nil?
-                Email.error_email "Google wasn’t able to route us: #{response.body}"
+                Airbrake.notify(Notice.new("Google wasn’t able to route us"), response.body)
                 status 404
                 body "There was no route found between the given addresses"
                 return

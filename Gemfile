@@ -9,8 +9,8 @@ gem "httparty"
 gem "sqlite3"
 gem "nokogiri" # used for Google printpage parsing, so for most of cases useless
 gem "digest-murmurhash"
-gem "exception_notification"
 gem "rack"
+gem "airbrake"
 
 group :development do
     gem "rdoc"
