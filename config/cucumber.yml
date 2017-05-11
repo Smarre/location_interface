@@ -1,1 +1,1 @@
-default: --tags ~@fallback_nominatim
+default: --tags ~@fallback_nominatim --tags ~@logging
