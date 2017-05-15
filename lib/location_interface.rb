@@ -42,6 +42,18 @@ class LocationInterface < Sinatra::Base
         @@sqlite ||= nil
         return @@sqlite if not @@sqlite.nil?
 
+        # Disable sqlite3 writes as that thing is slow and blocks with high load
+        sqlite = Class.new do
+            def execute *args
+                nil
+            end
+            def last_insert_row_id
+                nil
+            end
+        end
+        @@sqlite = sqlite.new
+        return @@sqlite
+
         @@sqlite = SQLite3::Database.new "requests.sqlite3"
         @@sqlite.execute <<-SQL
         create table if not exists requests (
