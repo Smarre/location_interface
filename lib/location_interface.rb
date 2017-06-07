@@ -104,7 +104,7 @@ class LocationInterface < Sinatra::Base
 
     configure do
         #set :dump_errors, true
-        #set :raise_errors, true
+        set :raise_errors, true
         set :show_exceptions, false
         #disable :show_exceptions
         #set :show_exceptions, true # for debugging
@@ -218,6 +218,11 @@ class LocationInterface < Sinatra::Base
         etag Digest::MurmurHash64A.hexdigest("#{params["latitude"]}#{params["longitude"]}"), new_resource: false, kind: :weak
         LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "reverse", params.to_s ]
         request_id = LocationInterface.sqlite.last_insert_row_id
+
+        if !params["latitude"] || !params["longitude"]
+            return [ 404, { "Content-Type" => "application/json" }, '"Invalid input."' ]
+        end
+
         place = Nominatim.reverse(params["latitude"], params["longitude"]).address_details(true).fetch
         return [ 404, { "Content-Type" => "application/json" }, '"Nothing found for given coordinates"' ] if place.nil?
         address = place.address
