@@ -216,8 +216,6 @@ class LocationInterface < Sinatra::Base
     # - longitude
     post "/reverse" do
         etag Digest::MurmurHash64A.hexdigest("#{params["latitude"]}#{params["longitude"]}"), new_resource: false, kind: :weak
-        LocationInterface.sqlite.execute "INSERT INTO requests (type, input) VALUES (?, ?)", [ "reverse", params.to_s ]
-        request_id = LocationInterface.sqlite.last_insert_row_id
 
         if !params["latitude"] || !params["longitude"]
             return [ 404, { "Content-Type" => "application/json" }, '"Invalid input."' ]
@@ -233,12 +231,10 @@ class LocationInterface < Sinatra::Base
         hash = { "city" => city, "postal_code" => address.postcode }
 
         if not address.road
-            config = LocationInterface.config
             Airbrake.notify(Notice.new("For some reason Nominatim result had road instead of street in the response.")) do |notice|
                 notice[:params][:place] = place.inspect
                 notice[:context][:severity] = "info"
             end
-            #raise "Road not set in response. Response: #{place.inspect}"
         end
 
         if address.road
@@ -248,7 +244,14 @@ class LocationInterface < Sinatra::Base
             end
         end
 
-        LocationInterface.sqlite.execute "UPDATE requests SET successful = 1 WHERE id = ?", request_id
+        # For some reason in some cases the address is nil (if the coordinates are not directly next to an apartment) even though we got a match
+        # so we can ask help from Google in such case.
+        if hash["address"].nil?
+            google = Google.new
+            result = google.reverse params["latitude"], params["longitude"]
+            return [ 404, { "Content-Type" => "application/json" }, '"Nothing found for given coordinates, still."' ] if result.nil?
+            hash = result
+        end
 
         json hash
     end
