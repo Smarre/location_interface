@@ -44,17 +44,17 @@ class Google
             return nil
         end
 
-        components = data["results"]["address"]["address_components"]
+        components = data["results"][0]["address_components"]
         street_address = nil
         street_number = nil
         city = nil
         postal_code = nil
 
         components.each do |component|
-            street_number = component["long_name"] if component["types"].include? "street_number"
-            street_address = component["route"] if component["types"].include? "route"
-            postal_code = component["postal_code"] if component["types"].include? "postal_code"
-            city = component["postal_town"] if component["types"].include? "postal_town"
+            street_number   = component["long_name"] if component["types"].include? "street_number"
+            street_address  = component["long_name"] if component["types"].include? "route"
+            postal_code     = component["long_name"] if component["types"].include? "postal_code"
+            city            = component["long_name"] if component["types"].include? "locality"
         end
 
         {
