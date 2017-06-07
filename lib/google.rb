@@ -31,6 +31,39 @@ class Google
         return latitude, longitude
     end
 
+    # Returns latitude, longitude or nil in case of error
+    def reverse latitude, longitude
+        return nil if LocationInterface.config["google"]["geocode"]["api_key"].nil? or LocationInterface.config["google"]["geocode"]["api_key"].empty?
+        api_key = LocationInterface.config["google"]["geocode"]["api_key"]
+        url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=#{latitude},#{longitude}&key=#{api_key}"
+
+        response = HTTParty.get url
+        data = JSON.parse response.body
+        if not data["status"] == "OK"
+            Email::error_email "Invalid response from Google’s reverse api with url: #{url}"
+            return nil
+        end
+
+        components = data["results"]["address"]["address_components"]
+        street_address = nil
+        street_number = nil
+        city = nil
+        postal_code = nil
+
+        components.each do |component|
+            street_number = component["long_name"] if component["types"].include? "street_number"
+            street_address = component["route"] if component["types"].include? "route"
+            postal_code = component["postal_code"] if component["types"].include? "postal_code"
+            city = component["postal_town"] if component["types"].include? "postal_town"
+        end
+
+        {
+            "address" => "#{street_address} #{street_number}",
+            "city" => city,
+            "postal_code" => postal_code
+        }
+    end
+
     def distance_by_roads from, to
         # distance is distance in kilometers
         distance = search_from_api from, to
