@@ -1,7 +1,6 @@
 
 require "uri"
 
-require_relative "email"
 require_relative "google"
 
 class Address
@@ -207,7 +206,10 @@ class Address
         LocationInterface.configure_nominatim
 
         if not lat.nil?
-            Email.error_email "For some reason official Nominatim returned results but ours didn’t, for address #{address}"
+            Airbrake.notify(Notice.new("For some reason official Nominatim returned results but ours didn’t")) do |notice|
+                notice[:params][:address] = address
+                notice[:context][:severity] = "notice"
+            end
             return lat, lon
         end
         nil
@@ -221,14 +223,11 @@ class Address
         begin
             place = places.first
         rescue MultiJson::ParseError => e
-            # This means that we were not able to get proper answer from the service, so let’s send an error email.
-            Email.error_email "The nominatim thingy sent invalid response to us: #{e}"
+            Airbrake.notify e
             return nil
         end
 
         return place.lat, place.lon if places.count > 0
-        # This can be used for debugging, but most of time geocode fail is correct, so the mail is useless
-        # Email.error_email "Nominatim response is invalid: #{places.inspect}"
         nil
     end
 

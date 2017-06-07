@@ -4,9 +4,6 @@ require "uri"
 require "httparty"
 require "nokogiri"
 
-require_relative "email"
-
-
 class Google
 
     # Returns latitude, longitude or nil in case of error
@@ -18,7 +15,11 @@ class Google
         response = HTTParty.get url
         data = JSON.parse response.body
         if not data["status"] == "OK"
-            Email::error_email "Invalid response from Google’s geocode api with url: #{url}"
+            Airbrake.notify(Notice.new("Invalid response from Google’s geocode api with url")) do |notice|
+                notice[:params][:address_string] = address_string
+                notice[:params][:url] = url
+                notice[:context][:severity] = "warning"
+            end
             return nil
         end
 
@@ -40,7 +41,12 @@ class Google
         response = HTTParty.get url
         data = JSON.parse response.body
         if not data["status"] == "OK"
-            Email::error_email "Invalid response from Google’s reverse api with url: #{url}"
+            Airbrake.notify(Notice.new("Invalid response from Google’s reverse api with url")) do |notice|
+                notice[:params][:latitude] = latitude
+                notice[:params][:longitude] = longitude
+                notice[:params][:url] = url
+                notice[:context][:severity] = "warning"
+            end
             return nil
         end
 
@@ -91,27 +97,38 @@ class Google
         begin
             data = JSON.parse response.body
         rescue JSON::ParserError => e
-            Email::error_email "Invalid data when trying to do delivery calculation. (1) [#{url}]"
+            Airbrake.notify(Notice.new("Invalid data when trying to do delivery calculation")) do |notice|
+                notice[:params][:from] = from
+                notice[:params][:to] = to
+                notice[:params][:url] = url
+                notice[:context][:severity] = "warning"
+            end
             return nil
         end
 
         if data["status"].nil?
-            Email::error_email "Invalid data received from server. Check the API. (2) [#{url}]"
+            Airbrake.notify(Notice.new("Invalid data received from server. Check the API.")) do |notice|
+                notice[:params][:from] = from
+                notice[:params][:to] = to
+                notice[:params][:url] = url
+                notice[:params][:data] = data
+                notice[:context][:severity] = "warning"
+            end
             return nil
         end
 
         if data["status"] != "OK" || data["rows"][0]["elements"][0]["status"] != "OK"
-            Email::error_email "Distance calculation failed for given address information. #{data["status"]} (3) [#{url}]"
+            Airbrake.notify(Notice.new("Distance calculation failed for given address information.")) do |notice|
+                notice[:params][:from] = from
+                notice[:params][:to] = to
+                notice[:params][:url] = url
+                notice[:params][:data] = data
+                notice[:context][:severity] = "warning"
+            end
             return nil
         end
 
-        # I’m not really sure how to handle error cases here, let’s see this better after we get something that fails
-        begin
-            distance = data["rows"][0]["elements"][0]["distance"]["value"]
-        rescue RuntimeError => e
-            Email::error_email "Google’s response is invalid, from: #{from}, to: #{to} data: #{data}"
-            raise e
-        end
+        distance = data["rows"][0]["elements"][0]["distance"]["value"]
 
         distance / 1000.0
     end

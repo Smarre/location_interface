@@ -4,7 +4,6 @@ gem "sinatra"
 gem "sinatra-contrib"
 #gem "nominatim"
 gem "ruby-nominatim"
-gem "email"
 gem "httparty"
 gem "sqlite3"
 gem "nokogiri" # used for Google printpage parsing, so for most of cases useless
