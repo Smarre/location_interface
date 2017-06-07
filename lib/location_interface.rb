@@ -8,7 +8,6 @@ require "digest/murmurhash"
 
 require_relative "../config/initializers/errbit.rb"
 
-require_relative "email"
 require_relative "address"
 require_relative "google"
 require_relative "osrm"
