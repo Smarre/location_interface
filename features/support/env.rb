@@ -34,6 +34,18 @@ rescue Timeout::Error => e
     exit 1
 end
 
+require "rack/test"
+
+World do
+    def app
+        @app = Rack::Builder.new do
+            run LocationInterface
+        end
+    end
+    "Need to return something boring to get this working"
+end
+World(Rack::Test::Methods)
+
 # Truncate database after each test
 After do
     file = "requests.sqlite3"
