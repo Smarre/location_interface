@@ -60,6 +60,7 @@ class Google
             street_number   = component["long_name"] if component["types"].include? "street_number"
             street_address  = component["long_name"] if component["types"].include? "route"
             postal_code     = component["long_name"] if component["types"].include? "postal_code"
+            city            = component["long_name"] if component["types"].include? "administrative_area_level_3"
             city            = component["long_name"] if component["types"].include? "locality"
         end
 
