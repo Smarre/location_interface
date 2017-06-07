@@ -23,4 +23,5 @@ group :test do
     gem "childprocess"
     gem "cucumber"
     gem "rspec"
+    gem "rack-test"
 end
