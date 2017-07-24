@@ -230,13 +230,6 @@ class LocationInterface < Sinatra::Base
 
         hash = { "city" => city, "postal_code" => address.postcode }
 
-        if not address.road
-            Airbrake.notify(Notice.new("For some reason Nominatim result had road instead of street in the response.")) do |notice|
-                notice[:params][:place] = place.inspect
-                notice[:context][:severity] = "info"
-            end
-        end
-
         if address.road
             hash["address"] = "#{address.road}"
             if address.house_number
